@@ -194,16 +194,11 @@
                         <div class="avatar avatar-me" id="myAvatar">ME</div>
                         <div>
                             <div class="brand">NodeChat</div>
-                            <button
+                            <div
                                 id="myUsername"
                                 class="identity-name"
-                                type="button"
-                                title="Your name"
                             >
                                 Your name
-                            </button>
-                            <div id="myHandle" class="identity-handle">
-                                @...
                             </div>
                         </div>
                     </div>
@@ -291,7 +286,6 @@
                             <div class="avatar" id="headerAvatar">U</div>
                             <div class="header-user">
                                 <strong id="headerName">User</strong>
-                                <span id="headerHandle">@user</span>
                                 <span id="typingText"
                                     >Private conversation</span
                                 >
@@ -336,6 +330,65 @@
                 </div>
             </section>
         </main>
+
+
+        <div id="profileBackdrop" class="profile-backdrop hidden" aria-hidden="true"></div>
+
+        <aside id="myProfilePanel" class="profile-panel profile-panel-left" aria-label="Your profile" aria-hidden="true">
+            <header class="profile-panel-header">
+                <button id="closeMyProfile" class="profile-close" type="button" aria-label="Close profile">←</button>
+                <strong>Profile</strong>
+            </header>
+            <div class="profile-scroll">
+                <div class="profile-hero">
+                    <div class="profile-avatar-large" id="profileAvatar">ME</div>
+                    <h2 id="profileName">Your name</h2>
+                    <p id="profileUsername">@username</p>
+                </div>
+                <div class="profile-section">
+                    <div class="profile-label">Name</div>
+                    <div class="profile-value" id="profileNameValue">Your name</div>
+                </div>
+                <div class="profile-section">
+                    <div class="profile-label">Username</div>
+                    <div class="profile-value" id="profileUsernameValue">@username</div>
+                </div>
+                <div class="profile-section">
+                    <div class="profile-label">Email</div>
+                    <div class="profile-value" id="profileEmailValue">—</div>
+                </div>
+                <div class="profile-section profile-section-last">
+                    <div class="profile-label">Member since</div>
+                    <div class="profile-value" id="profileJoinedValue">—</div>
+                </div>
+            </div>
+        </aside>
+
+        <aside id="contactProfilePanel" class="profile-panel profile-panel-right" aria-label="Contact profile" aria-hidden="true">
+            <header class="profile-panel-header">
+                <button id="closeContactProfile" class="profile-close" type="button" aria-label="Close contact profile">×</button>
+                <strong>Contact info</strong>
+            </header>
+            <div class="profile-scroll">
+                <div class="profile-hero">
+                    <div class="profile-avatar-large" id="contactProfileAvatar">U</div>
+                    <h2 id="contactProfileName">User</h2>
+                    <p id="contactProfileUsername">@user</p>
+                </div>
+                <div class="profile-section">
+                    <div class="profile-label">Username</div>
+                    <div class="profile-value" id="contactProfileUsernameValue">@user</div>
+                </div>
+                <div class="profile-section">
+                    <div class="profile-label">Status</div>
+                    <div class="profile-value" id="contactProfileStatus">Private conversation</div>
+                </div>
+                <div class="profile-section profile-section-last">
+                    <div class="profile-label">Member since</div>
+                    <div class="profile-value" id="contactProfileJoinedValue">—</div>
+                </div>
+            </div>
+        </aside>
 
         <div id="toast" class="toast" role="status" aria-live="polite"></div>
         <script src="/socket.io/socket.io.js"></script>

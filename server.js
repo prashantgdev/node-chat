@@ -6,6 +6,7 @@ import { MongoClient } from "mongodb";
 import { Server } from "socket.io";
 import bcrypt from "bcryptjs";
 import nodemailer from "nodemailer";
+import { networkInterfaces as interfaces } from "os";
 
 const PORT = Number(process.env.PORT || 3000);
 const MONGODB_URI = process.env.MONGODB_URI;
@@ -451,4 +452,18 @@ io.on("connection", socket => {
   });
 });
 
-httpServer.listen(PORT, "0.0.0.0", () => console.log(`1-on-1 chat running on port ${PORT}`));
+httpServer.listen(PORT, "0.0.0.0", () => {
+  console.log(`Server running:`);
+
+  console.log(`Local:   http://localhost:${PORT}`);
+
+  const nets = interfaces();
+
+  for (const name of Object.keys(nets)) {
+    for (const net of nets[name]) {
+      if (net.family === "IPv4" && !net.internal) {
+        console.log(`Network: http://${net.address}:${PORT}`);
+      }
+    }
+  }
+});

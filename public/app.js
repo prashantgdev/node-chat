@@ -314,6 +314,67 @@ async function api(path, options = {}) {
   return response;
 }
 
+function formatMemberSince(value) {
+  if (!value) return "—";
+  const date = new Date(value);
+  if (Number.isNaN(date.getTime())) return "—";
+  return date.toLocaleDateString(undefined, { month: "long", year: "numeric" });
+}
+
+function setProfilePanel(panel, open) {
+  const backdrop = $("profileBackdrop");
+  panel.classList.toggle("open", open);
+  panel.setAttribute("aria-hidden", open ? "false" : "true");
+  const anyOpen =
+    $("myProfilePanel").classList.contains("open") ||
+    $("contactProfilePanel").classList.contains("open");
+  backdrop.classList.toggle("hidden", !anyOpen);
+  backdrop.setAttribute("aria-hidden", anyOpen ? "false" : "true");
+}
+
+function openMyProfile() {
+  if (!me) return;
+  $("profileAvatar").textContent = initials(displayName(me));
+  $("profileName").textContent = displayName(me);
+  $("profileUsername").textContent = handle(me);
+  $("profileNameValue").textContent = displayName(me);
+  $("profileUsernameValue").textContent = handle(me);
+  $("profileEmailValue").textContent = me.email || "—";
+  $("profileJoinedValue").textContent = formatMemberSince(me.createdAt);
+  setProfilePanel($("contactProfilePanel"), false);
+  setProfilePanel($("myProfilePanel"), true);
+}
+
+function openContactProfile() {
+  if (!activeOtherUsername) return;
+  const chat = chats.find(
+    (item) =>
+      item.user.username.toLowerCase() === activeOtherUsername.toLowerCase(),
+  );
+  const user = chat?.user || {
+    username: activeOtherUsername,
+    name: $("headerName").textContent,
+  };
+
+  $("contactProfileAvatar").textContent = initials(displayName(user));
+  $("contactProfileName").textContent = displayName(user);
+  $("contactProfileUsername").textContent = handle(user);
+  $("contactProfileUsernameValue").textContent = handle(user);
+  $("contactProfileStatus").textContent = user.online
+    ? "Online now"
+    : lastSeen(user.lastSeenAt);
+  $("contactProfileJoinedValue").textContent = formatMemberSince(
+    user.createdAt,
+  );
+  setProfilePanel($("myProfilePanel"), false);
+  setProfilePanel($("contactProfilePanel"), true);
+}
+
+function closeProfiles() {
+  setProfilePanel($("myProfilePanel"), false);
+  setProfilePanel($("contactProfilePanel"), false);
+}
+
 function renderChats() {
   const list = $("chatList");
   list.innerHTML = "";
@@ -332,7 +393,6 @@ function renderChats() {
           <div class="chat-name">${esc(displayName(chat.user))}</div>
           <span class="chat-time">${esc(time(chat.lastMessageAt))}</span>
         </div>
-        <div class="chat-handle">${esc(handle(chat.user))}</div>
         <div class="chat-last">${esc(chat.lastMessage || (chat.user.online ? "Online now" : lastSeen(chat.user.lastSeenAt)))}</div>
       </div>`;
     row.addEventListener("click", () => openChat(chat.user.username));
@@ -440,7 +500,6 @@ function connect() {
     activeOtherUsername = data.otherUser.username;
     activeConversationId = data.conversationId;
     $("headerName").textContent = displayName(data.otherUser);
-    $("headerHandle").textContent = handle(data.otherUser);
     $("headerAvatar").textContent = initials(displayName(data.otherUser));
     showOtherPresence(data.otherUser);
     renderHistory(data.messages);
@@ -547,7 +606,6 @@ function openChat(username) {
     (item) => item.user.username.toLowerCase() === username.toLowerCase(),
   )?.user;
   $("headerName").textContent = displayName(chatUser || { username });
-  $("headerHandle").textContent = handle(chatUser || { username });
   $("headerAvatar").textContent = initials(
     displayName(chatUser || { username }),
   );
@@ -650,12 +708,16 @@ $("searchInput").addEventListener("keydown", (event) => {
 });
 $("newChatBtn").addEventListener("click", () => openSearchSection());
 $("emptyNewChat").addEventListener("click", () => openSearchSection());
-$("myUsername").addEventListener("click", () =>
-  navigator.clipboard
-    ?.writeText(me.name || me.username)
-    .then(() => toast("Name copied"))
-    .catch(() => toast(me.name || me.username)),
-);
+$("myUsername").addEventListener("click", openMyProfile);
+$("myAvatar").addEventListener("click", openMyProfile);
+$("closeMyProfile").addEventListener("click", closeProfiles);
+$("closeContactProfile").addEventListener("click", closeProfiles);
+$("profileBackdrop").addEventListener("click", closeProfiles);
+$("headerAvatar").addEventListener("click", openContactProfile);
+$("headerName").addEventListener("click", openContactProfile);
+document.addEventListener("keydown", (event) => {
+  if (event.key === "Escape") closeProfiles();
+});
 $("backBtn").addEventListener("click", () => {
   app.classList.remove("chat-open");
   activeOtherUsername = null;
@@ -704,8 +766,6 @@ async function bootApp(user) {
   $("authScreen").classList.add("hidden");
   app.classList.remove("hidden");
   $("myUsername").textContent = displayName(me);
-  $("myUsername").title = `Your name · ${handle(me)}`;
-  $("myHandle").textContent = handle(me);
   $("myAvatar").textContent = initials(displayName(me));
   try {
     await loadChats();
