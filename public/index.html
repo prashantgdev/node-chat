@@ -1,397 +1,398 @@
 <!doctype html>
 <html lang="en">
-    <head>
-        <meta charset="UTF-8" />
-        <meta
-            name="viewport"
-            content="width=device-width,initial-scale=1,viewport-fit=cover"
-        />
-        <meta name="theme-color" content="#f7f6f2" />
-        <meta
-            name="description"
-            content="NodeChat — simple, private one-to-one conversations."
-        />
-        <title>NodeChat — Private conversations</title>
-        <link rel="stylesheet" href="/style.css" />
-    </head>
-    <body>
-        <div id="authScreen" class="auth-screen">
-            <div class="auth-layout">
-                <section class="auth-intro" aria-label="NodeChat introduction">
-                    <div class="wordmark">
-                        <span class="wordmark-mark" aria-hidden="true">ND</span
-                        ><span>NodeChat</span>
-                    </div>
-                    <div class="intro-copy">
-                        <p class="eyebrow">Private conversations</p>
-                        <h1>A quieter way to stay in touch.</h1>
-                        <p>
-                            One person, one conversation, no noisy feeds. Find
-                            someone by name or username and start talking.
-                        </p>
-                    </div>
-                    <div class="intro-note">
-                        <span class="status-dot" aria-hidden="true"></span>
-                        Built for simple, focused conversations.
-                    </div>
-                </section>
+  <head>
+    <meta charset="UTF-8" />
+    <meta
+      name="viewport"
+      content="width=device-width,initial-scale=1,viewport-fit=cover"
+    />
+    <meta name="theme-color" content="#f7f6f2" />
+    <meta
+      name="description"
+      content="NodeChat — simple, private one-to-one conversations."
+    />
+    <title>NodeChat — Private conversations</title>
+    <link rel="stylesheet" href="/style.css" />
+  </head>
+  <body>
+    <div id="authScreen" class="auth-screen">
+      <div class="auth-layout">
+        <section class="auth-intro" aria-label="NodeChat introduction">
+          <div class="wordmark">
+            <span class="wordmark-mark" aria-hidden="true">ND</span
+            ><span>NodeChat</span>
+          </div>
+          <div class="intro-copy">
+            <p class="eyebrow">Private conversations</p>
+            <h1>A quieter way to stay in touch.</h1>
+            <p>
+              One person, one conversation, no noisy feeds. Find someone by name
+              or username and start talking.
+            </p>
+          </div>
+          <div class="intro-note">
+            <span class="status-dot" aria-hidden="true"></span>
+            Built for simple, focused conversations.
+          </div>
+        </section>
 
-                <section class="auth-card" aria-labelledby="authTitle">
-                    <div class="auth-heading">
-                        <p class="eyebrow" id="authEyebrow">Welcome back</p>
-                        <h2 id="authTitle">Sign in</h2>
-                        <p id="authDescription">Continue your conversations.</p>
-                    </div>
+        <section class="auth-card" aria-labelledby="authTitle">
+          <div class="auth-heading">
+            <p class="eyebrow" id="authEyebrow">Welcome back</p>
+            <h2 id="authTitle">Sign in</h2>
+            <p id="authDescription">Continue your conversations.</p>
+          </div>
 
-                    <div
-                        class="tabs"
-                        role="tablist"
-                        aria-label="Authentication"
-                    >
-                        <button
-                            id="loginTab"
-                            class="active"
-                            type="button"
-                            role="tab"
-                            aria-selected="true"
-                        >
-                            Sign in
-                        </button>
-                        <button
-                            id="registerTab"
-                            type="button"
-                            role="tab"
-                            aria-selected="false"
-                        >
-                            Create account
-                        </button>
-                    </div>
+          <div class="tabs" role="tablist" aria-label="Authentication">
+            <button
+              id="loginTab"
+              class="active"
+              type="button"
+              role="tab"
+              aria-selected="true"
+            >
+              Sign in
+            </button>
+            <button
+              id="registerTab"
+              type="button"
+              role="tab"
+              aria-selected="false"
+            >
+              Create account
+            </button>
+          </div>
 
-                    <form id="authForm" novalidate>
-                        <label id="nameLabel" class="field hidden">
-                            <span>Your name</span>
-                            <input
-                                id="name"
-                                autocomplete="name"
-                                maxlength="50"
-                                placeholder="e.g. Alex Johnson"
-                            />
-                        </label>
-                        <label id="usernameLabel" class="field hidden">
-                            <span>Username / handle</span>
-                            <input
-                                id="username"
-                                autocomplete="username"
-                                maxlength="24"
-                                placeholder="e.g. alex_123"
-                            />
-                        </label>
-                        <label class="field">
-                            <span id="loginLabel">Email or username</span>
-                            <input
-                                id="login"
-                                autocomplete="username"
-                                placeholder="you@example.com"
-                            />
-                        </label>
-                        <label id="confirmPasswordLabel" class="field hidden">
-                            <span>Confirm password</span>
-                            <input
-                                id="confirmPassword"
-                                type="password"
-                                autocomplete="new-password"
-                                minlength="8"
-                                maxlength="72"
-                                placeholder="Enter your password again"
-                            />
-                        </label>
-                        <label class="field">
-                            <span>Password</span>
-                            <input
-                                id="password"
-                                type="password"
-                                autocomplete="current-password"
-                                minlength="8"
-                                maxlength="72"
-                                placeholder="At least 8 characters"
-                            />
-                        </label>
-                        <button
-                            class="primary-btn"
-                            type="submit"
-                            id="authSubmit"
-                        >
-                            <span>Sign in</span
-                            ><span aria-hidden="true">→</span>
-                        </button>
-                        <div
-                            id="authError"
-                            class="form-error"
-                            role="alert"
-                            aria-live="polite"
-                        ></div>
-                    </form>
+          <form id="authForm" novalidate>
+            <label id="nameLabel" class="field hidden">
+              <span>Your name</span>
+              <input
+                id="name"
+                autocomplete="name"
+                maxlength="50"
+                placeholder="e.g. Alex Johnson"
+              />
+            </label>
+            <label id="usernameLabel" class="field hidden">
+              <span>Username / handle</span>
+              <input
+                id="username"
+                autocomplete="username"
+                maxlength="24"
+                placeholder="e.g. alex_123"
+              />
+            </label>
+            <label class="field">
+              <span id="loginLabel">Email or username</span>
+              <input
+                id="login"
+                autocomplete="username"
+                placeholder="you@example.com"
+              />
+            </label>
+            <label id="confirmPasswordLabel" class="field hidden">
+              <span>Confirm password</span>
+              <input
+                id="confirmPassword"
+                type="password"
+                autocomplete="new-password"
+                minlength="8"
+                maxlength="72"
+                placeholder="Enter your password again"
+              />
+            </label>
+            <label class="field">
+              <span>Password</span>
+              <input
+                id="password"
+                type="password"
+                autocomplete="current-password"
+                minlength="8"
+                maxlength="72"
+                placeholder="At least 8 characters"
+              />
+            </label>
+            <button class="primary-btn" type="submit" id="authSubmit">
+              <span>Sign in</span><span aria-hidden="true">→</span>
+            </button>
+            <div
+              id="authError"
+              class="form-error"
+              role="alert"
+              aria-live="polite"
+            ></div>
+          </form>
 
-                    <form
-                        id="verificationForm"
-                        class="verification-form hidden"
-                        novalidate
-                    >
-                        <div
-                            class="verification-email"
-                            id="verificationEmail"
-                        ></div>
-                        <label class="field">
-                            <span>Verification code</span>
-                            <input
-                                id="verificationCode"
-                                inputmode="numeric"
-                                autocomplete="one-time-code"
-                                maxlength="6"
-                                pattern="[0-9]{6}"
-                                placeholder="6-digit code"
-                            />
-                        </label>
-                        <button
-                            class="primary-btn"
-                            type="submit"
-                            id="verifySubmit"
-                        >
-                            <span>Verify email</span
-                            ><span aria-hidden="true">→</span>
-                        </button>
-                        <div class="verification-actions">
-                            <button
-                                type="button"
-                                id="resendVerification"
-                                class="text-link"
-                            >
-                                Resend code
-                            </button>
-                            <button
-                                type="button"
-                                id="changeVerificationEmail"
-                                class="text-link"
-                            >
-                                Use another email
-                            </button>
-                        </div>
-                        <div
-                            id="verificationError"
-                            class="form-error"
-                            role="alert"
-                            aria-live="polite"
-                        ></div>
-                    </form>
-                </section>
+          <form
+            id="verificationForm"
+            class="verification-form hidden"
+            novalidate
+          >
+            <div class="verification-email" id="verificationEmail"></div>
+            <label class="field">
+              <span>Verification code</span>
+              <input
+                id="verificationCode"
+                inputmode="numeric"
+                autocomplete="one-time-code"
+                maxlength="6"
+                pattern="[0-9]{6}"
+                placeholder="6-digit code"
+              />
+            </label>
+            <button class="primary-btn" type="submit" id="verifySubmit">
+              <span>Verify email</span><span aria-hidden="true">→</span>
+            </button>
+            <div class="verification-actions">
+              <button type="button" id="resendVerification" class="text-link">
+                Resend code
+              </button>
+              <button
+                type="button"
+                id="changeVerificationEmail"
+                class="text-link"
+              >
+                Use another email
+              </button>
             </div>
+            <div
+              id="verificationError"
+              class="form-error"
+              role="alert"
+              aria-live="polite"
+            ></div>
+          </form>
+        </section>
+      </div>
+    </div>
+
+    <main id="chatApp" class="app hidden">
+      <aside class="sidebar" aria-label="Conversations">
+        <header class="side-header">
+          <div class="identity">
+            <div class="avatar avatar-me" id="myAvatar">ME</div>
+            <div>
+              <div class="brand">NodeChat</div>
+              <div id="myUsername" class="identity-name">Your name</div>
+            </div>
+          </div>
+          <div class="header-actions">
+            <button id="newChatBtn" class="text-action" type="button">
+              New chat
+            </button>
+            <button
+              id="logoutBtn"
+              class="quiet-btn"
+              type="button"
+              aria-label="Sign out"
+            >
+              Sign out
+            </button>
+          </div>
+        </header>
+
+        <div class="search-section">
+          <label class="search-box" for="searchInput">
+            <span class="search-icon" aria-hidden="true">⌕</span>
+            <input
+              id="searchInput"
+              autocomplete="off"
+              placeholder="Find a person"
+              maxlength="40"
+            />
+            <kbd>Enter</kbd>
+          </label>
+          <div
+            id="searchResult"
+            class="search-result hidden"
+            aria-live="polite"
+          ></div>
         </div>
 
-        <main id="chatApp" class="app hidden">
-            <aside class="sidebar" aria-label="Conversations">
-                <header class="side-header">
-                    <div class="identity">
-                        <div class="avatar avatar-me" id="myAvatar">ME</div>
-                        <div>
-                            <div class="brand">NodeChat</div>
-                            <div
-                                id="myUsername"
-                                class="identity-name"
-                            >
-                                Your name
-                            </div>
-                        </div>
-                    </div>
-                    <div class="header-actions">
-                        <button
-                            id="newChatBtn"
-                            class="text-action"
-                            type="button"
-                        >
-                            New chat
-                        </button>
-                        <button
-                            id="logoutBtn"
-                            class="quiet-btn"
-                            type="button"
-                            aria-label="Sign out"
-                        >
-                            Sign out
-                        </button>
-                    </div>
-                </header>
+        <div class="list-heading">
+          <span>Conversations</span>
+          <span id="chatCount" class="list-count">0</span>
+        </div>
+        <div id="chatList" class="chat-list" role="list"></div>
+        <div id="emptyChats" class="empty-side">
+          <div class="empty-mark" aria-hidden="true">+</div>
+          <strong>No conversations yet</strong>
+          <p>
+            Search by name or username above to start your first private
+            conversation.
+          </p>
+          <button id="emptyNewChat" class="text-link" type="button">
+            Find someone →
+          </button>
+        </div>
+      </aside>
 
-                <div class="search-section">
-                    <label class="search-box" for="searchInput">
-                        <span class="search-icon" aria-hidden="true">⌕</span>
-                        <input
-                            id="searchInput"
-                            autocomplete="off"
-                            placeholder="Find a person"
-                            maxlength="40"
-                        />
-                        <kbd>Enter</kbd>
-                    </label>
-                    <div
-                        id="searchResult"
-                        class="search-result hidden"
-                        aria-live="polite"
-                    ></div>
-                </div>
-
-                <div class="list-heading">
-                    <span>Conversations</span>
-                    <span id="chatCount" class="list-count">0</span>
-                </div>
-                <div id="chatList" class="chat-list" role="list"></div>
-                <div id="emptyChats" class="empty-side">
-                    <div class="empty-mark" aria-hidden="true">+</div>
-                    <strong>No conversations yet</strong>
-                    <p>
-                        Search by name or username above to start your first
-                        private conversation.
-                    </p>
-                    <button id="emptyNewChat" class="text-link" type="button">
-                        Find someone →
-                    </button>
-                </div>
-            </aside>
-
-            <section class="chat-panel" aria-label="Conversation">
-                <div id="welcome" class="welcome">
-                    <div class="welcome-inner">
-                        <div class="welcome-mark" aria-hidden="true">
-                            <span></span><span></span>
-                        </div>
-                        <p class="eyebrow">NodeChat</p>
-                        <h1>Pick a conversation.</h1>
-                        <p>
-                            Choose someone from the left, or search by name or
-                            username to begin.
-                        </p>
-                    </div>
-                </div>
-
-                <div id="chatView" class="chat-view hidden">
-                    <header class="chat-header">
-                        <button
-                            id="backBtn"
-                            class="back-btn"
-                            type="button"
-                            aria-label="Back to conversations"
-                        >
-                            ←
-                        </button>
-                        <div class="header-person">
-                            <div class="avatar" id="headerAvatar">U</div>
-                            <div class="header-user">
-                                <strong id="headerName">User</strong>
-                                <span id="typingText"
-                                    >Private conversation</span
-                                >
-                            </div>
-                        </div>
-                        <div class="connection-state" id="connectionState">
-                            <span class="connection-dot"></span
-                            ><span>Connected</span>
-                        </div>
-                    </header>
-
-                    <div
-                        id="messages"
-                        class="messages"
-                        role="log"
-                        aria-live="polite"
-                        aria-label="Messages"
-                    ></div>
-
-                    <form id="messageForm" class="composer" novalidate>
-                        <div class="composer-field">
-                            <input
-                                id="messageInput"
-                                autocomplete="off"
-                                maxlength="2000"
-                                placeholder="Write a message…"
-                                aria-label="Message"
-                            />
-                            <span id="messageCount" class="char-count"
-                                >0 / 2000</span
-                            >
-                        </div>
-                        <button
-                            type="submit"
-                            id="sendBtn"
-                            class="send-btn"
-                            disabled
-                        >
-                            <span>Send</span><span aria-hidden="true">↗</span>
-                        </button>
-                    </form>
-                </div>
-            </section>
-        </main>
-
-
-        <div id="profileBackdrop" class="profile-backdrop hidden" aria-hidden="true"></div>
-
-        <aside id="myProfilePanel" class="profile-panel profile-panel-left" aria-label="Your profile" aria-hidden="true">
-            <header class="profile-panel-header">
-                <button id="closeMyProfile" class="profile-close" type="button" aria-label="Close profile">←</button>
-                <strong>Profile</strong>
-            </header>
-            <div class="profile-scroll">
-                <div class="profile-hero">
-                    <div class="profile-avatar-large" id="profileAvatar">ME</div>
-                    <h2 id="profileName">Your name</h2>
-                    <p id="profileUsername">@username</p>
-                </div>
-                <div class="profile-section">
-                    <div class="profile-label">Name</div>
-                    <div class="profile-value" id="profileNameValue">Your name</div>
-                </div>
-                <div class="profile-section">
-                    <div class="profile-label">Username</div>
-                    <div class="profile-value" id="profileUsernameValue">@username</div>
-                </div>
-                <div class="profile-section">
-                    <div class="profile-label">Email</div>
-                    <div class="profile-value" id="profileEmailValue">—</div>
-                </div>
-                <div class="profile-section profile-section-last">
-                    <div class="profile-label">Member since</div>
-                    <div class="profile-value" id="profileJoinedValue">—</div>
-                </div>
+      <section class="chat-panel" aria-label="Conversation">
+        <div id="welcome" class="welcome">
+          <div class="welcome-inner">
+            <div class="welcome-mark" aria-hidden="true">
+              <span></span><span></span>
             </div>
-        </aside>
+            <p class="eyebrow">NodeChat</p>
+            <h1>Pick a conversation.</h1>
+            <p>
+              Choose someone from the left, or search by name or username to
+              begin.
+            </p>
+          </div>
+        </div>
 
-        <aside id="contactProfilePanel" class="profile-panel profile-panel-right" aria-label="Contact profile" aria-hidden="true">
-            <header class="profile-panel-header">
-                <button id="closeContactProfile" class="profile-close" type="button" aria-label="Close contact profile">×</button>
-                <strong>Contact info</strong>
-            </header>
-            <div class="profile-scroll">
-                <div class="profile-hero">
-                    <div class="profile-avatar-large" id="contactProfileAvatar">U</div>
-                    <h2 id="contactProfileName">User</h2>
-                    <p id="contactProfileUsername">@user</p>
-                </div>
-                <div class="profile-section">
-                    <div class="profile-label">Username</div>
-                    <div class="profile-value" id="contactProfileUsernameValue">@user</div>
-                </div>
-                <div class="profile-section">
-                    <div class="profile-label">Status</div>
-                    <div class="profile-value" id="contactProfileStatus">Private conversation</div>
-                </div>
-                <div class="profile-section profile-section-last">
-                    <div class="profile-label">Member since</div>
-                    <div class="profile-value" id="contactProfileJoinedValue">—</div>
-                </div>
+        <div id="chatView" class="chat-view hidden">
+          <header class="chat-header">
+            <button
+              id="backBtn"
+              class="back-btn"
+              type="button"
+              aria-label="Back to conversations"
+            >
+              ←
+            </button>
+            <div class="header-person">
+              <div class="avatar" id="headerAvatar">U</div>
+              <div class="header-user">
+                <strong id="headerName">User</strong>
+                <span id="typingText">Private conversation</span>
+              </div>
             </div>
-        </aside>
+            <div class="connection-state" id="connectionState">
+              <span class="connection-dot"></span><span>Connected</span>
+            </div>
+          </header>
 
-        <div id="toast" class="toast" role="status" aria-live="polite"></div>
-        <script src="/socket.io/socket.io.js"></script>
-        <script src="/app.js"></script>
-    </body>
+          <div
+            id="messages"
+            class="messages"
+            role="log"
+            aria-live="polite"
+            aria-label="Messages"
+          ></div>
+
+          <form id="messageForm" class="composer" novalidate>
+            <div class="composer-field">
+              <input
+                id="messageInput"
+                autocomplete="off"
+                maxlength="2000"
+                placeholder="Write a message…"
+                aria-label="Message"
+              />
+              <span id="messageCount" class="char-count">0 / 2000</span>
+            </div>
+            <button type="submit" id="sendBtn" class="send-btn" disabled>
+              <span>Send</span><span aria-hidden="true">↗</span>
+            </button>
+          </form>
+        </div>
+      </section>
+    </main>
+
+    <div
+      id="profileBackdrop"
+      class="profile-backdrop hidden"
+      aria-hidden="true"
+    ></div>
+
+    <aside
+      id="myProfilePanel"
+      class="profile-panel profile-panel-left"
+      aria-label="Your profile"
+      aria-hidden="true"
+    >
+      <header class="profile-panel-header">
+        <button
+          id="closeMyProfile"
+          class="profile-close"
+          type="button"
+          aria-label="Close profile"
+        >
+          ←
+        </button>
+        <strong>Profile</strong>
+      </header>
+      <div class="profile-scroll">
+        <div class="profile-hero">
+          <div class="profile-avatar-large" id="profileAvatar">ME</div>
+          <h2 id="profileName">Your name</h2>
+          <p id="profileUsername">@username</p>
+        </div>
+        <div class="profile-section">
+          <div class="profile-label">Name</div>
+          <div class="profile-value" id="profileNameValue">Your name</div>
+        </div>
+        <div class="profile-section">
+          <div class="profile-label">Username</div>
+          <div class="profile-value" id="profileUsernameValue">@username</div>
+        </div>
+        <div class="profile-section">
+          <div class="profile-label">Email</div>
+          <div class="profile-value" id="profileEmailValue">—</div>
+        </div>
+        <div class="profile-section">
+          <label class="profile-checkbox">
+            <input type="checkbox" id="profileShowEmail" />
+            <span>Show my email to others</span>
+          </label>
+        </div>
+        <div class="profile-section profile-section-last">
+          <div class="profile-label">Member since</div>
+          <div class="profile-value" id="profileJoinedValue">—</div>
+        </div>
+      </div>
+    </aside>
+
+    <aside
+      id="contactProfilePanel"
+      class="profile-panel profile-panel-right"
+      aria-label="Contact profile"
+      aria-hidden="true"
+    >
+      <header class="profile-panel-header">
+        <button
+          id="closeContactProfile"
+          class="profile-close"
+          type="button"
+          aria-label="Close contact profile"
+        >
+          ×
+        </button>
+        <strong>Contact info</strong>
+      </header>
+      <div class="profile-scroll">
+        <div class="profile-hero">
+          <div class="profile-avatar-large" id="contactProfileAvatar">U</div>
+          <h2 id="contactProfileName">User</h2>
+          <p id="contactProfileUsername">@user</p>
+        </div>
+        <div class="profile-section">
+          <div class="profile-label">Username</div>
+          <div class="profile-value" id="contactProfileUsernameValue">
+            @user
+          </div>
+        </div>
+        <div class="profile-section hidden" id="contactProfileEmailSection">
+          <div class="profile-label">Email</div>
+          <div class="profile-value" id="contactProfileEmailValue">—</div>
+        </div>
+        <div class="profile-section">
+          <div class="profile-label">Status</div>
+          <div class="profile-value" id="contactProfileStatus">
+            Private conversation
+          </div>
+        </div>
+        <div class="profile-section profile-section-last">
+          <div class="profile-label">Member since</div>
+          <div class="profile-value" id="contactProfileJoinedValue">—</div>
+        </div>
+      </div>
+    </aside>
+
+    <div id="toast" class="toast" role="status" aria-live="polite"></div>
+    <script src="/socket.io/socket.io.js"></script>
+    <script src="/app.js"></script>
+  </body>
 </html>

@@ -334,23 +334,30 @@ function setProfilePanel(panel, open) {
 
 function openMyProfile() {
   if (!me) return;
+
   $("profileAvatar").textContent = initials(displayName(me));
   $("profileName").textContent = displayName(me);
   $("profileUsername").textContent = handle(me);
   $("profileNameValue").textContent = displayName(me);
   $("profileUsernameValue").textContent = handle(me);
   $("profileEmailValue").textContent = me.email || "—";
+
+  $("profileShowEmail").checked = me.showEmail === true;
+
   $("profileJoinedValue").textContent = formatMemberSince(me.createdAt);
+
   setProfilePanel($("contactProfilePanel"), false);
   setProfilePanel($("myProfilePanel"), true);
 }
 
 function openContactProfile() {
   if (!activeOtherUsername) return;
+
   const chat = chats.find(
     (item) =>
       item.user.username.toLowerCase() === activeOtherUsername.toLowerCase(),
   );
+
   const user = chat?.user || {
     username: activeOtherUsername,
     name: $("headerName").textContent,
@@ -359,13 +366,27 @@ function openContactProfile() {
   $("contactProfileAvatar").textContent = initials(displayName(user));
   $("contactProfileName").textContent = displayName(user);
   $("contactProfileUsername").textContent = handle(user);
+
   $("contactProfileUsernameValue").textContent = handle(user);
+
+  const emailSection = $("contactProfileEmailSection");
+
+  if (user.email) {
+    $("contactProfileEmailValue").textContent = user.email;
+    emailSection.classList.remove("hidden");
+  } else {
+    $("contactProfileEmailValue").textContent = "—";
+    emailSection.classList.add("hidden");
+  }
+
   $("contactProfileStatus").textContent = user.online
     ? "Online now"
     : lastSeen(user.lastSeenAt);
+
   $("contactProfileJoinedValue").textContent = formatMemberSince(
     user.createdAt,
   );
+
   setProfilePanel($("myProfilePanel"), false);
   setProfilePanel($("contactProfilePanel"), true);
 }
@@ -681,13 +702,51 @@ function sendTyping(isTyping) {
 function openSearchSection() {
   const el = document.querySelector(".search-section");
 
-  el.style.display = el.style.display === "none" || el.style.display === "" ? "block" : "none";
+  el.style.display =
+    el.style.display === "none" || el.style.display === "" ? "block" : "none";
 
   if (el.style.display === "block") {
     $("searchInput").focus();
   }
 }
 
+$("profileShowEmail").addEventListener("change", async () => {
+  const checkbox = $("profileShowEmail");
+  const previousValue = !checkbox.checked;
+
+  checkbox.disabled = true;
+
+  try {
+    const response = await api("/api/me/email-visibility", {
+      method: "PATCH",
+      headers: {
+        "Content-Type": "application/json",
+      },
+      body: JSON.stringify({
+        showEmail: checkbox.checked,
+      }),
+    });
+
+    const data = await response.json();
+
+    if (!response.ok) {
+      throw new Error(data.error || "Could not update email visibility.");
+    }
+
+    me = data.user;
+
+    toast(
+      me.showEmail
+        ? "Your email is now visible to others."
+        : "Your email is now hidden from others.",
+    );
+  } catch (error) {
+    checkbox.checked = previousValue;
+    toast(error.message || "Could not update email visibility.");
+  } finally {
+    checkbox.disabled = false;
+  }
+});
 $("authForm").addEventListener("submit", auth);
 $("verificationForm").addEventListener("submit", verifyEmail);
 $("resendVerification").addEventListener("click", resendVerification);
