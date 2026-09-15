@@ -4,7 +4,7 @@ A private one-to-one chat app built with Node.js, Express, Socket.IO and MongoDB
 
 ## 🌐 Live Demo
 
-[![Live Demo](https://img.shields.io/badge/Live-Demo-brightgreen)](https://my-chat-app.onrender.com)
+[![Live Demo](https://img.shields.io/badge/Live-Demo-brightgreen)](https://node-chat-pyfg.onrender.com)
 
 👉 [Open NodeChat](https://node-chat-pyfg.onrender.com)
 
