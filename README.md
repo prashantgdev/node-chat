@@ -2,6 +2,12 @@
 
 A private one-to-one chat app built with Node.js, Express, Socket.IO and MongoDB. The current UI is intentionally quiet and editorial rather than copying common messenger patterns: light surfaces, restrained color, clear typography, simple conversation navigation, and responsive mobile behavior.
 
+## 🌐 Live Demo
+
+[![Live Demo](https://img.shields.io/badge/Live-Demo-brightgreen)](https://my-chat-app.onrender.com)
+
+👉 [Open NodeChat](https://node-chat-pyfg.onrender.com)
+
 ## Product direction
 
 - Minimal, light visual system with warm neutral surfaces.
