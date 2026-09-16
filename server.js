@@ -2,7 +2,7 @@ import "dotenv/config";
 import express from "express";
 import http from "http";
 import crypto from "crypto";
-import { MongoClient } from "mongodb";
+import { MongoClient, ObjectId } from "mongodb";
 import { Server } from "socket.io";
 import bcrypt from "bcryptjs";
 import nodemailer from "nodemailer";
@@ -31,6 +31,36 @@ const io = new Server(httpServer, {
 app.use(express.json({ limit: "50kb" }));
 app.use(express.static("public"));
 
+function createRateLimiter({ windowMs, max, message }) {
+  const buckets = new Map();
+  return (req, res, next) => {
+    const key = req.ip || req.socket.remoteAddress || "unknown";
+    const now = Date.now();
+    let bucket = buckets.get(key);
+    if (!bucket || now - bucket.startedAt >= windowMs) {
+      bucket = { startedAt: now, count: 0 };
+      buckets.set(key, bucket);
+    }
+    bucket.count += 1;
+    if (bucket.count > max) {
+      const retryAfter = Math.ceil((windowMs - (now - bucket.startedAt)) / 1000);
+      res.set("Retry-After", String(retryAfter));
+      return res.status(429).json({ error: message, retryAfter });
+    }
+    next();
+  };
+}
+const authRateLimit = createRateLimiter({
+  windowMs: 10 * 60 * 1000,
+  max: 30,
+  message: "Too many authentication requests. Please try again later.",
+});
+const searchRateLimit = createRateLimiter({
+  windowMs: 60 * 1000,
+  max: 60,
+  message: "Too many searches. Please slow down.",
+});
+
 const mailer =
   process.env.SMTP_USER && process.env.SMTP_PASSWORD
     ? nodemailer.createTransport({
@@ -57,10 +87,14 @@ await Promise.all([
   sessions.createIndex({ expiresAt: 1 }, { expireAfterSeconds: 0 }),
   conversations.createIndex({ key: 1 }, { unique: true }),
   conversations.createIndex({ members: 1 }),
-  messages.createIndex({ conversationId: 1, createdAt: 1 }),
+  messages.createIndex({ conversationId: 1, createdAt: -1 }),
+  messages.createIndex({ conversationId: 1, senderUsername: 1, createdAt: -1 }),
   verificationOtps.createIndex({ email: 1 }, { unique: true }),
   verificationOtps.createIndex({ expiresAt: 1 }, { expireAfterSeconds: 0 }),
 ]);
+
+// Reactions were removed from the product. Clean up any legacy reaction fields.
+await messages.updateMany({ reactions: { $exists: true } }, { $unset: { reactions: "" } });
 
 function makeToken() {
   return crypto.randomBytes(32).toString("hex");
@@ -247,7 +281,7 @@ async function issueVerificationOtp(email) {
   await sendVerificationOtp(email);
 }
 
-app.post("/api/auth/register", async (req, res) => {
+app.post("/api/auth/register", authRateLimit, async (req, res) => {
   try {
     if (!mailer)
       return res
@@ -341,7 +375,7 @@ app.post("/api/auth/register", async (req, res) => {
   }
 });
 
-app.post("/api/auth/verify-email", async (req, res) => {
+app.post("/api/auth/verify-email", authRateLimit, async (req, res) => {
   try {
     const email = cleanEmail(req.body.email);
     const otp = String(req.body.otp || "").trim();
@@ -398,7 +432,7 @@ app.post("/api/auth/verify-email", async (req, res) => {
   }
 });
 
-app.post("/api/auth/resend-verification", async (req, res) => {
+app.post("/api/auth/resend-verification", authRateLimit, async (req, res) => {
   try {
     if (!mailer)
       return res
@@ -431,7 +465,7 @@ app.post("/api/auth/resend-verification", async (req, res) => {
   }
 });
 
-app.post("/api/auth/login", async (req, res) => {
+app.post("/api/auth/login", authRateLimit, async (req, res) => {
   try {
     const login = String(req.body.login || "").trim();
     const password = String(req.body.password || "");
@@ -495,7 +529,7 @@ app.patch("/api/me/email-visibility", requireUser, async (req, res) => {
   });
 });
 
-app.get("/api/users/search", requireUser, async (req, res) => {
+app.get("/api/users/search", requireUser, searchRateLimit, async (req, res) => {
   const q = String(req.query.q || "").trim();
   if (!q || q.length > 40) return res.json({ users: [] });
   const regex = new RegExp(escapeRegex(q), "i");
@@ -540,11 +574,17 @@ async function chatListFor(username) {
       { conversationId: chat._id },
       { sort: { createdAt: -1 } },
     );
+    const unreadCount = await messages.countDocuments({
+      conversationId: chat._id,
+      senderUsername: { $ne: username },
+      readBy: { $ne: username },
+    });
     result.push({
       conversationId: String(chat._id),
       user: publicUser(other),
       lastMessage: last?.text || "",
       lastMessageAt: last?.createdAt || chat.updatedAt,
+      unreadCount,
     });
   }
   return result;
@@ -592,25 +632,43 @@ app.get("/api/chats/:otherUsername/messages", requireUser, async (req, res) => {
       messages: [],
       conversationId: null,
       otherUser: publicUser(other),
+      hasMore: false,
     });
-  const docs = await messages
-    .find({ conversationId: chat._id })
-    .sort({ createdAt: -1 })
-    .limit(100)
-    .toArray();
+  const limit = Math.min(Math.max(Number(req.query.limit) || 50, 1), 100);
+  const before = req.query.before ? new Date(req.query.before) : null;
+  const filter = {
+    conversationId: chat._id,
+    ...(before && !Number.isNaN(before.getTime()) ? { createdAt: { $lt: before } } : {}),
+  };
+  const docs = await messages.find(filter).sort({ createdAt: -1 }).limit(limit + 1).toArray();
+  const hasMore = docs.length > limit;
+  docs.splice(limit);
   docs.reverse();
   res.json({
     conversationId: String(chat._id),
     otherUser: await publicUserWithPresence(other, req.user.username),
-    messages: docs.map((m) => ({
-      id: String(m._id),
-      senderUsername: m.senderUsername,
-      senderName: m.senderName || null,
-      text: m.text,
-      createdAt: m.createdAt,
-    })),
+    hasMore,
+    messages: docs.map(publicMessage),
   });
 });
+
+function publicMessage(message) {
+  return {
+    id: String(message._id),
+    conversationId: String(message.conversationId),
+    senderUsername: message.senderUsername,
+    senderName: message.senderName || null,
+    text: message.text,
+    createdAt: message.createdAt,
+    editedAt: message.editedAt || null,
+    delivered: Array.isArray(message.deliveredTo) && message.deliveredTo.length > 0,
+    readBy: Array.isArray(message.readBy) ? message.readBy : [],
+  };
+}
+
+function userIsMember(chat, username) {
+  return chat.members.some((member) => member.toLowerCase() === username.toLowerCase());
+}
 
 io.use(async (socket, next) => {
   try {
@@ -629,31 +687,50 @@ io.on("connection", (socket) => {
   socket.join(`user:${me.toLowerCase()}`);
   socket.broadcast.emit("presence:update", { username: me, online: true });
 
+  async function getChatForOther(otherUsername) {
+    const other = await getUserByUsername(otherUsername);
+    if (!other || other.username.toLowerCase() === me.toLowerCase()) return null;
+    return { other, chat: await getOrCreateChat(me, other.username) };
+  }
+
+  async function loadMessages(chat, before) {
+    const limit = 50;
+    const filter = {
+      conversationId: chat._id,
+      ...(before ? { createdAt: { $lt: before } } : {}),
+    };
+    const docs = await messages.find(filter).sort({ createdAt: -1 }).limit(limit + 1).toArray();
+    const hasMore = docs.length > limit;
+    docs.splice(limit);
+    docs.reverse();
+    return { messages: docs.map(publicMessage), hasMore };
+  }
+
   socket.on("chat:open", async ({ otherUsername }) => {
     try {
       otherUsername = cleanUsername(otherUsername);
-      if (!otherUsername || otherUsername.toLowerCase() === me.toLowerCase())
-        return socket.emit("chat:error", "Invalid user.");
-      const other = await getUserByUsername(otherUsername);
-      if (!other) return socket.emit("chat:error", "User not found.");
-      const chat = await getOrCreateChat(me, other.username);
+      const result = await getChatForOther(otherUsername);
+      if (!result) return socket.emit("chat:error", "Invalid user.");
+      const { other, chat } = result;
       socket.join(`chat:${chat._id}`);
-      const docs = await messages
-        .find({ conversationId: chat._id })
-        .sort({ createdAt: -1 })
-        .limit(100)
-        .toArray();
-      docs.reverse();
+      const history = await loadMessages(chat);
+      await messages.updateMany(
+        {
+          conversationId: chat._id,
+          senderUsername: other.username,
+          readBy: { $ne: me },
+        },
+        { $addToSet: { readBy: me } },
+      );
       socket.emit("chat:history", {
         conversationId: String(chat._id),
         otherUser: await publicUserWithPresence(other, me),
-        messages: docs.map((m) => ({
-          id: String(m._id),
-          senderUsername: m.senderUsername,
-          senderName: m.senderName || null,
-          text: m.text,
-          createdAt: m.createdAt,
-        })),
+        messages: history.messages,
+        hasMore: history.hasMore,
+      });
+      io.to(`user:${other.username.toLowerCase()}`).emit("chat:read", {
+        conversationId: String(chat._id),
+        username: me,
       });
     } catch (err) {
       console.error(err);
@@ -661,41 +738,40 @@ io.on("connection", (socket) => {
     }
   });
 
+  socket.on("chat:older", async ({ conversationId, before }) => {
+    try {
+      const chat = await conversations.findOne({ _id: new ObjectId(conversationId) });
+      if (!chat || !userIsMember(chat, me)) return;
+      const date = new Date(before);
+      if (Number.isNaN(date.getTime())) return;
+      const history = await loadMessages(chat, date);
+      socket.emit("chat:older", history);
+    } catch {
+      socket.emit("chat:error", "Could not load older messages.");
+    }
+  });
+
   socket.on("chat:send", async ({ otherUsername, text }) => {
     try {
       otherUsername = cleanUsername(otherUsername);
       text = String(text || "").trim();
-      if (
-        !otherUsername ||
-        otherUsername.toLowerCase() === me.toLowerCase() ||
-        !text ||
-        text.length > 2000
-      )
-        return;
-      const other = await getUserByUsername(otherUsername);
-      if (!other) return socket.emit("chat:error", "User not found.");
-      const chat = await getOrCreateChat(me, other.username);
+      if (!otherUsername || otherUsername.toLowerCase() === me.toLowerCase() || !text || text.length > 2000) return;
+      const result = await getChatForOther(otherUsername);
+      if (!result) return socket.emit("chat:error", "User not found.");
+      const { other, chat } = result;
       const message = {
         conversationId: chat._id,
         senderUsername: me,
         senderName: socket.user.name || socket.user.displayName || me,
         text,
         createdAt: new Date(),
+        deliveredTo: [],
+        readBy: [],
       };
       const inserted = await messages.insertOne(message);
       message._id = inserted.insertedId;
-      await conversations.updateOne(
-        { _id: chat._id },
-        { $set: { updatedAt: message.createdAt } },
-      );
-      const payload = {
-        id: String(message._id),
-        conversationId: String(chat._id),
-        senderUsername: me,
-        senderName: message.senderName,
-        text,
-        createdAt: message.createdAt,
-      };
+      await conversations.updateOne({ _id: chat._id }, { $set: { updatedAt: message.createdAt } });
+      const payload = publicMessage(message);
       io.to(`chat:${chat._id}`).emit("chat:message", payload);
       io.to(`user:${other.username.toLowerCase()}`).emit("chat:updated", {
         conversationId: String(chat._id),
@@ -703,6 +779,11 @@ io.on("connection", (socket) => {
         fromName: message.senderName,
         lastMessage: text,
         lastMessageAt: message.createdAt,
+        unreadCount: await messages.countDocuments({
+          conversationId: chat._id,
+          senderUsername: { $ne: other.username },
+          readBy: { $ne: other.username },
+        }),
       });
     } catch (err) {
       console.error(err);
@@ -710,10 +791,79 @@ io.on("connection", (socket) => {
     }
   });
 
+  socket.on("chat:delivered", async ({ messageId }) => {
+    try {
+      const result = await messages.findOneAndUpdate(
+        { _id: new ObjectId(messageId), senderUsername: { $ne: me } },
+        { $addToSet: { deliveredTo: me } },
+        { returnDocument: "after" },
+      );
+      if (!result?.value && !result) return;
+      const message = result?.value || result;
+      const sender = message.senderUsername;
+      io.to(`user:${sender.toLowerCase()}`).emit("chat:status", {
+        messageId,
+        delivered: true,
+      });
+    } catch {}
+  });
+
+  socket.on("chat:read", async ({ conversationId }) => {
+    try {
+      const chat = await conversations.findOne({ _id: new ObjectId(conversationId) });
+      if (!chat || !userIsMember(chat, me)) return;
+      await messages.updateMany(
+        { conversationId: chat._id, senderUsername: { $ne: me }, readBy: { $ne: me } },
+        { $addToSet: { readBy: me } },
+      );
+      const other = chat.members.find((x) => x.toLowerCase() !== me.toLowerCase());
+      io.to(`user:${other.toLowerCase()}`).emit("chat:read", {
+        conversationId,
+        username: me,
+      });
+    } catch {}
+  });
+
+  socket.on("chat:edit", async ({ messageId, text }) => {
+    try {
+      text = String(text || "").trim();
+      if (!text || text.length > 2000) return;
+      const result = await messages.findOneAndUpdate(
+        { _id: new ObjectId(messageId), senderUsername: me },
+        { $set: { text, editedAt: new Date() } },
+        { returnDocument: "after" },
+      );
+      const message = result?.value || result;
+      if (!message) return;
+      io.to(`chat:${message.conversationId}`).emit("chat:message:update", publicMessage(message));
+    } catch {}
+  });
+
+  socket.on("chat:delete", async ({ messageId }) => {
+    try {
+      const message = await messages.findOne({
+        _id: new ObjectId(messageId),
+        senderUsername: me,
+      });
+      if (!message) return;
+
+      const deleted = await messages.deleteOne({
+        _id: message._id,
+        senderUsername: me,
+      });
+      if (!deleted.deletedCount) return;
+
+      io.to(`chat:${message.conversationId}`).emit("chat:message:deleted", {
+        messageId: String(message._id),
+        conversationId: String(message.conversationId),
+        senderUsername: message.senderUsername,
+      });
+    } catch {}
+  });
+
   socket.on("chat:typing", async ({ otherUsername, isTyping }) => {
     otherUsername = cleanUsername(otherUsername);
-    if (!otherUsername || otherUsername.toLowerCase() === me.toLowerCase())
-      return;
+    if (!otherUsername || otherUsername.toLowerCase() === me.toLowerCase()) return;
     const other = await getUserByUsername(otherUsername);
     if (other)
       io.to(`user:${other.username.toLowerCase()}`).emit("chat:typing", {
@@ -723,17 +873,10 @@ io.on("connection", (socket) => {
   });
 
   socket.on("disconnect", async () => {
-    const stillConnected = await io
-      .in(`user:${me.toLowerCase()}`)
-      .fetchSockets()
-      .catch(() => []);
+    const stillConnected = await io.in(`user:${me.toLowerCase()}`).fetchSockets().catch(() => []);
     if (stillConnected.length === 0) {
       const lastSeenAt = await setLastSeen(me).catch(() => new Date());
-      socket.broadcast.emit("presence:update", {
-        username: me,
-        online: false,
-        lastSeenAt,
-      });
+      socket.broadcast.emit("presence:update", { username: me, online: false, lastSeenAt });
     }
   });
 });

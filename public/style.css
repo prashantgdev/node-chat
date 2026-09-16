@@ -794,11 +794,34 @@ kbd {
   color: #66625a;
 }
 .composer {
+  position: relative;
   display: flex;
   gap: 9px;
   padding: 12px 24px max(14px, env(safe-area-inset-bottom));
   border-top: 1px solid var(--line);
   background: var(--surface);
+}
+.unread-badge {
+  min-width: 20px;
+  height: 20px;
+  padding: 0 6px;
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  border-radius: 999px;
+  background: var(--ink);
+  color: #fff;
+  font-size: 10px;
+  font-weight: 700;
+}
+.message {
+  position: relative;
+}
+.message-body { white-space: pre-wrap; overflow-wrap: anywhere; }
+.message:hover .message-actions { display: flex; }
+.message-status {
+  font-size: 10px;
+  color: var(--muted);
 }
 .composer-field {
   position: relative;
@@ -1091,6 +1114,7 @@ kbd {
     max-width: 84%;
   }
   .composer {
+  position: relative;
     padding-left: 12px;
     padding-right: 12px;
   }
@@ -1122,6 +1146,7 @@ kbd {
     margin-right: 18px;
   }
   .composer {
+  position: relative;
     gap: 6px;
   }
   .char-count {
@@ -1147,3 +1172,43 @@ kbd {
     transition: none !important;
   }
 }
+.cancel-edit-btn {
+  height: 45px;
+  padding: 0 12px;
+  border: 1px solid var(--line-strong);
+  border-radius: 4px;
+  background: var(--surface);
+  color: var(--muted);
+  cursor: pointer;
+  font-size: 12px;
+}
+.cancel-edit-btn:hover {
+  color: var(--ink);
+  background: var(--soft);
+}
+
+.message-context-menu {
+  position: fixed;
+  z-index: 9999;
+  min-width: 150px;
+  padding: 5px;
+  border: 1px solid var(--line);
+  border-radius: 6px;
+  background: #fff;
+  box-shadow: 0 8px 25px rgba(0, 0, 0, 0.15);
+}
+.message-context-menu.hidden { display: none; }
+.message-context-menu button {
+  display: block;
+  width: 100%;
+  padding: 9px 11px;
+  border: 0;
+  border-radius: 4px;
+  background: transparent;
+  color: var(--ink);
+  text-align: left;
+  font-size: 13px;
+  cursor: pointer;
+}
+.message-context-menu button:hover { background: var(--accent-soft); }
+.message-context-menu button[data-action="delete"] { color: #d33; }

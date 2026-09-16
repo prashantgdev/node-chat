@@ -6,11 +6,16 @@ let me = null;
 let socket = null;
 let activeOtherUsername = null;
 let activeConversationId = null;
+let activeMessages = [];
 let typingTimer = null;
 let searchTimer = null;
 let chats = [];
 let registerMode = false;
 let toastTimer = null;
+let editingMessageId = null;
+let contextMessage = null;
+let loadingOlder = false;
+let hasMoreMessages = false;
 
 function esc(value) {
   return String(value ?? "").replace(
@@ -407,6 +412,7 @@ function renderChats() {
     row.type = "button";
     row.className = `chat-row ${chat.user.username.toLowerCase() === activeOtherUsername?.toLowerCase() ? "active" : ""}`;
     row.setAttribute("role", "listitem");
+    const unread = Number(chat.unreadCount || 0);
     row.innerHTML = `
       <div class="avatar chat-presence ${chat.user.online ? "online" : ""}">${esc(initials(displayName(chat.user)))}</div>
       <div class="chat-info">
@@ -415,13 +421,14 @@ function renderChats() {
           <span class="chat-time">${esc(time(chat.lastMessageAt))}</span>
         </div>
         <div class="chat-last">${esc(chat.lastMessage || (chat.user.online ? "Online now" : lastSeen(chat.user.lastSeenAt)))}</div>
-      </div>`;
+      </div>
+      ${unread ? `<span class="unread-badge">${unread > 99 ? "99+" : unread}</span>` : ""}`;
     row.addEventListener("click", () => openChat(chat.user.username));
     list.appendChild(row);
   }
 }
 
-function updateChat(username, message, at, user) {
+function updateChat(username, message, at, user, unreadDelta = 0) {
   let chat = chats.find(
     (item) => item.user.username.toLowerCase() === username.toLowerCase(),
   );
@@ -431,12 +438,14 @@ function updateChat(username, message, at, user) {
       user: user || { username },
       lastMessage: "",
       lastMessageAt: at,
+      unreadCount: 0,
     };
   }
   if (user) chat.user = { ...chat.user, ...user };
   if (message !== undefined) chat.lastMessage = message;
   if (at) chat.lastMessageAt = at;
   if (activeConversationId) chat.conversationId = activeConversationId;
+  chat.unreadCount = Math.max(0, Number(chat.unreadCount || 0) + unreadDelta);
   chats = chats.filter((item) => item !== chat);
   chats.unshift(chat);
   renderChats();
@@ -450,9 +459,131 @@ async function loadChats() {
   renderChats();
 }
 
-function appendMessage(message, scroll = true) {
+function findMessageById(messageId) {
+  return activeMessages.find(
+    (message) => String(message.id) === String(messageId),
+  );
+}
+
+function hideMessageContextMenu() {
+  const menu = $("messageContextMenu");
+  if (!menu) return;
+  menu.classList.add("hidden");
+  contextMessage = null;
+}
+
+function positionMessageContextMenu(event, menu) {
+  const padding = 8;
+  const rect = menu.getBoundingClientRect();
+  let x = event.clientX;
+  let y = event.clientY;
+
+  if (x + rect.width > window.innerWidth - padding) {
+    x = window.innerWidth - rect.width - padding;
+  }
+  if (y + rect.height > window.innerHeight - padding) {
+    y = window.innerHeight - rect.height - padding;
+  }
+
+  menu.style.left = `${Math.max(padding, x)}px`;
+  menu.style.top = `${Math.max(padding, y)}px`;
+}
+
+function openMessageContextMenu(event, message) {
+  const menu = $("messageContextMenu");
+  if (!menu) return;
+
+  contextMessage = message;
+
   const mine =
     message.senderUsername.toLowerCase() === me.username.toLowerCase();
+
+  $("contextEditBtn")?.classList.toggle("hidden", !mine);
+  $("contextDeleteBtn")?.classList.toggle("hidden", !mine);
+
+  menu.classList.remove("hidden");
+  positionMessageContextMenu(event, menu);
+}
+
+async function copyMessage(message) {
+  const msgText = message.text || "";
+
+  try {
+    await navigator.clipboard.writeText(msgText);
+  } catch {
+    const textarea = document.createElement("textarea");
+    textarea.value = msgText;
+    textarea.style.position = "fixed";
+    textarea.style.left = "-9999px";
+    textarea.style.top = "0";
+
+    document.body.appendChild(textarea);
+
+    textarea.select();
+    document.execCommand("copy");
+    textarea.remove();
+  }
+
+  toast("Message copied");
+}
+
+function deleteMessage(message) {
+  if (!socket?.connected || !message?.id) return;
+  if (!confirm("Delete this message permanently?")) return;
+  socket.emit("chat:delete", { messageId: message.id });
+}
+
+function beginMessageEdit(message) {
+  const input = $("messageInput");
+  input.value = message.text || "";
+  input.focus();
+  input.setSelectionRange(input.value.length, input.value.length);
+
+  editingMessageId = message.id;
+  updateComposer();
+  $("sendBtn").querySelector("span").textContent = "Save";
+}
+
+function cancelMessageEdit() {
+  editingMessageId = null;
+  $("messageInput").value = "";
+
+  updateComposer();
+}
+
+function messageStatus(message) {
+  if (message.senderUsername.toLowerCase() !== me.username.toLowerCase())
+    return "";
+  const other = activeOtherUsername?.toLowerCase();
+  const read = (message.readBy || []).some(
+    (name) => name.toLowerCase() === other,
+  );
+  const delivered =
+    message.delivered ||
+    (message.deliveredTo || []).some((name) => name.toLowerCase() === other);
+  return read ? "Read" : delivered ? "Delivered" : "Sent";
+}
+
+function createMessageElement(message) {
+  const mine =
+    message.senderUsername.toLowerCase() === me.username.toLowerCase();
+  const item = document.createElement("div");
+  item.className = `message ${mine ? "mine" : "theirs"}`;
+  item.dataset.dateKey = dateKey(message.createdAt);
+  item.dataset.messageId = message.id || "";
+  item.dataset.createdAt = message.createdAt || "";
+  item.innerHTML = `
+    <div class="message-body">${esc(message.text)}</div>
+    <div class="message-meta">
+      <span>${esc(time(message.createdAt))}${message.editedAt ? " · edited" : ""}</span>
+      ${mine ? `<span class="message-status">${esc(messageStatus(message))}</span>` : ""}
+    </div>`;
+  return item;
+}
+
+function appendMessage(message, scroll = true) {
+  $("messages").querySelector(".messages-empty")?.remove();
+
   const messages = $("messages");
   const previous = messages.querySelector(".message:last-of-type");
   const needsDivider =
@@ -466,25 +597,78 @@ function appendMessage(message, scroll = true) {
     messages.appendChild(divider);
   }
 
-  const item = document.createElement("div");
-  item.className = `message ${mine ? "mine" : "theirs"}`;
-  item.dataset.dateKey = dateKey(message.createdAt);
-  item.dataset.messageId = message.id || "";
-  item.innerHTML = `<div>${esc(message.text)}</div><div class="message-meta"><span>${esc(time(message.createdAt))}</span></div>`;
+  const item = createMessageElement(message);
   messages.appendChild(item);
 
   if (scroll) messages.scrollTop = messages.scrollHeight;
+
+  if (
+    message.senderUsername.toLowerCase() !== me.username.toLowerCase() &&
+    message.id &&
+    socket?.connected
+  ) {
+    socket.emit("chat:delivered", { messageId: message.id });
+  }
 }
 
-function renderHistory(list) {
+function renderHistory(list, more = false) {
   const messages = $("messages");
   messages.innerHTML = "";
+  hasMoreMessages = Boolean(more);
   if (!list.length) {
     messages.innerHTML = `<div class="messages-empty"><strong>No messages yet</strong><span>Say hello and start the conversation.</span></div>`;
     return;
   }
   list.forEach((message) => appendMessage(message, false));
   messages.scrollTop = messages.scrollHeight;
+  if (activeConversationId && socket?.connected)
+    socket.emit("chat:read", { conversationId: activeConversationId });
+
+  updateEmptyMessagesState();
+}
+
+function updateEmptyMessagesState() {
+  const messages = $("messages");
+
+  const hasMessages = messages.querySelector(".message");
+
+  let emptyState = messages.querySelector(".messages-empty");
+
+  if (!hasMessages) {
+    if (!emptyState) {
+      messages.innerHTML = `<div class="messages-empty"><strong>No messages yet</strong><span>Say hello and start the conversation.</span></div>`;
+    }
+  } else {
+    emptyState?.remove();
+  }
+}
+
+function replaceMessage(message) {
+  const old = $("messages").querySelector(
+    `[data-message-id="${CSS.escape(message.id)}"]`,
+  );
+  if (!old) return;
+  const next = createMessageElement(message);
+  old.replaceWith(next);
+}
+
+async function loadOlderMessages() {
+  if (
+    loadingOlder ||
+    !hasMoreMessages ||
+    !activeConversationId ||
+    !socket?.connected
+  )
+    return;
+  const first = $("messages").querySelector(".message");
+  if (!first) return;
+  loadingOlder = true;
+  socket.emit("chat:older", {
+    conversationId: activeConversationId,
+    before:
+      first.dataset.createdAt ||
+      first.querySelector(".message-meta")?.dataset.createdAt,
+  });
 }
 
 function showOtherPresence(user) {
@@ -518,18 +702,27 @@ function connect() {
   socket.on("chat:error", toast);
 
   socket.on("chat:history", (data) => {
+    activeMessages = data.messages || [];
     activeOtherUsername = data.otherUser.username;
     activeConversationId = data.conversationId;
+    hasMoreMessages = Boolean(data.hasMore);
     $("headerName").textContent = displayName(data.otherUser);
     $("headerAvatar").textContent = initials(displayName(data.otherUser));
     showOtherPresence(data.otherUser);
-    renderHistory(data.messages);
+    renderHistory(data.messages, data.hasMore);
+    const current = chats.find(
+      (item) =>
+        item.user.username.toLowerCase() === activeOtherUsername.toLowerCase(),
+    );
+    if (current) current.unreadCount = 0;
     updateChat(
       activeOtherUsername,
       data.messages.at(-1)?.text || "",
       data.messages.at(-1)?.createdAt || new Date().toISOString(),
       data.otherUser,
     );
+    if (activeConversationId)
+      socket.emit("chat:read", { conversationId: activeConversationId });
     $("welcome").classList.add("hidden");
     $("chatView").classList.remove("hidden");
     app.classList.add("chat-open");
@@ -537,7 +730,29 @@ function connect() {
     $("messageInput").focus();
   });
 
+  socket.on("chat:older", (data) => {
+    const messages = $("messages");
+    const previousHeight = messages.scrollHeight;
+    const previousTop = messages.scrollTop;
+    const fragment = document.createDocumentFragment();
+    const currentFirst = messages.querySelector(".message");
+    const existing = Array.from(messages.querySelectorAll(".message")).map(
+      (el) => el.dataset.messageId,
+    );
+    for (const message of data.messages || []) {
+      if (existing.includes(message.id)) continue;
+      const item = createMessageElement(message);
+      fragment.appendChild(item);
+    }
+    messages.insertBefore(fragment, currentFirst || messages.firstChild);
+    hasMoreMessages = Boolean(data.hasMore);
+    messages.scrollTop = previousTop + (messages.scrollHeight - previousHeight);
+    loadingOlder = false;
+  });
+
   socket.on("chat:message", (message) => {
+    if (!activeMessages.some((item) => item.id === message.id))
+      activeMessages.push(message);
     const fromMe =
       message.senderUsername.toLowerCase() === me.username.toLowerCase();
     const fromActive =
@@ -546,7 +761,7 @@ function connect() {
     if (fromMe || fromActive) appendMessage(message);
 
     const chatUsername = fromMe ? activeOtherUsername : message.senderUsername;
-    if (chatUsername)
+    if (chatUsername) {
       updateChat(
         chatUsername,
         message.text,
@@ -554,7 +769,9 @@ function connect() {
         fromMe
           ? null
           : { username: message.senderUsername, name: message.senderName },
+        0,
       );
+    }
     if (!fromMe && !fromActive) {
       const sender = chats.find(
         (item) =>
@@ -563,22 +780,93 @@ function connect() {
       )?.user || { username: message.senderUsername, name: message.senderName };
       toast(`New message from ${displayName(sender)}`);
     }
+    if (!fromMe && fromActive && activeConversationId) {
+      socket.emit("chat:read", { conversationId: activeConversationId });
+    }
   });
 
   socket.on("chat:updated", (data) => {
-    updateChat(data.fromUsername, data.lastMessage, data.lastMessageAt, {
-      username: data.fromUsername,
-      name: data.fromName,
-    });
-    if (
-      data.fromUsername.toLowerCase() !== activeOtherUsername?.toLowerCase()
-    ) {
+    const isActive =
+      data.fromUsername.toLowerCase() === activeOtherUsername?.toLowerCase();
+    updateChat(
+      data.fromUsername,
+      data.lastMessage,
+      data.lastMessageAt,
+      { username: data.fromUsername, name: data.fromName },
+      0,
+    );
+    const updatedChat = chats.find(
+      (item) =>
+        item.user.username.toLowerCase() === data.fromUsername.toLowerCase(),
+    );
+    if (updatedChat) {
+      updatedChat.unreadCount = isActive ? 0 : Number(data.unreadCount || 0);
+      renderChats();
+    }
+    if (!isActive) {
       const sender = chats.find(
         (item) =>
           item.user.username.toLowerCase() === data.fromUsername.toLowerCase(),
       )?.user || { username: data.fromUsername, name: data.fromName };
       toast(`New message from ${displayName(sender)}`);
     }
+  });
+
+  socket.on("chat:status", (data) => {
+    const item = $("messages").querySelector(
+      `[data-message-id="${CSS.escape(data.messageId)}"]`,
+    );
+    if (item) {
+      item.querySelector(".message-status").textContent = data.delivered
+        ? "Delivered"
+        : "Sent";
+    }
+  });
+
+  socket.on("chat:read", (data) => {
+    if (data.conversationId !== activeConversationId) return;
+    document.querySelectorAll(".message.mine .message-status").forEach((el) => {
+      el.textContent = "Read";
+    });
+  });
+
+  socket.on("chat:message:update", (message) => {
+    replaceMessage(message);
+    const chat = chats.find(
+      (item) => item.conversationId === message.conversationId,
+    );
+    if (
+      chat &&
+      message.senderUsername.toLowerCase() === me.username.toLowerCase()
+    ) {
+      chat.lastMessage = message.text;
+      chat.lastMessageAt = message.createdAt;
+      renderChats();
+    }
+  });
+
+  socket.on("chat:message:deleted", (data) => {
+    const messageElement = document.querySelector(
+      `[data-message-id="${data.messageId}"]`,
+    );
+
+    if (!messageElement) return;
+
+    messageElement.remove();
+
+    activeMessages = activeMessages.filter(
+      (message) => String(message.id) !== String(data.messageId),
+    );
+
+    document.querySelectorAll(".day-divider").forEach((divider) => {
+      const next = divider.nextElementSibling;
+
+      if (!next || !next.classList.contains("message")) {
+        divider.remove();
+      }
+    });
+
+    updateEmptyMessagesState();
   });
 
   socket.on("presence:update", (data) => {
@@ -622,6 +910,10 @@ function openChat(username) {
   }
   activeOtherUsername = username;
   activeConversationId = null;
+  const selected = chats.find(
+    (item) => item.user.username.toLowerCase() === username.toLowerCase(),
+  );
+  if (selected) selected.unreadCount = 0;
   $("messages").innerHTML = `<div class="loading">Loading conversation…</div>`;
   const chatUser = chats.find(
     (item) => item.user.username.toLowerCase() === username.toLowerCase(),
@@ -691,7 +983,16 @@ function updateComposer() {
   const input = $("messageInput");
   const count = input.value.length;
   $("messageCount").textContent = `${count} / 2000`;
-  $("sendBtn").disabled = !count || !activeOtherUsername || !socket?.connected;
+
+  const editing = Boolean(editingMessageId);
+  $("sendBtn").disabled =
+    !count || (!editing && !activeOtherUsername) || !socket?.connected;
+  $("sendBtn").querySelector("span:first-child").textContent = editing
+    ? "Save"
+    : "Send";
+
+  const cancel = $("cancelEditBtn");
+  if (cancel) cancel.classList.toggle("hidden", !editing);
 }
 
 function sendTyping(isTyping) {
@@ -792,10 +1093,70 @@ $("logoutBtn").addEventListener("click", async () => {
   token = null;
   location.reload();
 });
+
+const messageContextMenu = $("messageContextMenu");
+
+if (messageContextMenu) {
+  $("messages").addEventListener("contextmenu", (event) => {
+    const messageElement = event.target.closest(".message");
+    if (!messageElement) return hideMessageContextMenu();
+
+    event.preventDefault();
+
+    const message = findMessageById(messageElement.dataset.messageId);
+    if (message) openMessageContextMenu(event, message);
+  });
+
+  messageContextMenu.addEventListener("click", async (event) => {
+    const button = event.target.closest("button");
+    if (!button || !contextMessage) return;
+
+    const action = button.dataset.action;
+    const message = contextMessage;
+    hideMessageContextMenu();
+
+    if (action === "copy") await copyMessage(message);
+    if (action === "reply") toast("Reply feature coming soon");
+
+    if (
+      action === "edit" &&
+      message.senderUsername.toLowerCase() === me.username.toLowerCase()
+    ) {
+      beginMessageEdit(message);
+    }
+
+    if (
+      action === "delete" &&
+      message.senderUsername.toLowerCase() === me.username.toLowerCase()
+    ) {
+      deleteMessage(message);
+    }
+  });
+}
+
+$("cancelEditBtn").addEventListener("click", cancelMessageEdit);
+
+document.addEventListener("click", (event) => {
+  if (!event.target.closest("#messageContextMenu")) hideMessageContextMenu();
+});
+
+$("messages").addEventListener("scroll", hideMessageContextMenu);
+window.addEventListener("resize", hideMessageContextMenu);
+
 $("messageForm").addEventListener("submit", (event) => {
   event.preventDefault();
   const text = $("messageInput").value.trim();
-  if (!text || !activeOtherUsername || !socket?.connected) return;
+  if (!text || !socket?.connected) return;
+
+  if (editingMessageId) {
+    socket.emit("chat:edit", { messageId: editingMessageId, text });
+    editingMessageId = null;
+    $("messageInput").value = "";
+    updateComposer();
+    return;
+  }
+
+  if (!activeOtherUsername) return;
   socket.emit("chat:send", { otherUsername: activeOtherUsername, text });
   $("messageInput").value = "";
   updateComposer();
@@ -809,10 +1170,18 @@ $("messageInput").addEventListener("input", () => {
 });
 $("messageInput").addEventListener("keydown", (event) => {
   if (event.key === "Escape") {
-    $("messageInput").value = "";
-    updateComposer();
-    sendTyping(false);
+    if (editingMessageId) {
+      cancelMessageEdit();
+    } else {
+      $("messageInput").value = "";
+      updateComposer();
+      sendTyping(false);
+    }
   }
+});
+
+$("messages").addEventListener("scroll", () => {
+  if ($("messages").scrollTop <= 40) loadOlderMessages();
 });
 
 document.addEventListener("click", (event) => {

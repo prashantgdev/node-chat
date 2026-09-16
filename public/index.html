@@ -283,6 +283,13 @@
               />
               <span id="messageCount" class="char-count">0 / 2000</span>
             </div>
+            <button
+              type="button"
+              id="cancelEditBtn"
+              class="cancel-edit-btn hidden"
+            >
+              Cancel
+            </button>
             <button type="submit" id="sendBtn" class="send-btn" disabled>
               <span>Send</span><span aria-hidden="true">↗</span>
             </button>
@@ -391,6 +398,16 @@
     </aside>
 
     <div id="toast" class="toast" role="status" aria-live="polite"></div>
+
+    <div id="messageContextMenu" class="message-context-menu hidden">
+      <button type="button" data-action="copy">Copy</button>
+      <button type="button" data-action="reply">Reply</button>
+      <button type="button" data-action="edit" id="contextEditBtn">Edit</button>
+      <button type="button" data-action="delete" id="contextDeleteBtn">
+        Delete
+      </button>
+    </div>
+
     <script src="/socket.io/socket.io.js"></script>
     <script src="/app.js"></script>
   </body>
