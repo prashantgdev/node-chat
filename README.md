@@ -1,5 +1,11 @@
 # NodeChat
 
+<p align="center" style="background: #fff; padding: 5px; border-radius: 7px;">
+  <img src="public/images/logo.png" alt="NodeChat Logo" width="180">
+   <br />
+  <img src="public/images/text.png" alt="NodeChat Logo" width="180">
+</p>
+
 A private 1-to-1 real-time chat application built with **Node.js, Express, Socket.IO, MongoDB, and vanilla JavaScript**.
 
 NodeChat is designed as a simple, self-hostable messaging application with account verification, private conversations, real-time messaging, presence, message management, and session-based authentication.
@@ -381,9 +387,3 @@ Never commit `.env` or other secrets to Git.
 If you have an older NodeChat database from a previous schema/version, review the current database structure before using it with a newer version.
 
 Back up your database before making significant application updates.
-
-## License
-
-```text
-MIT License
-```
