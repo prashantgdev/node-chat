@@ -171,9 +171,18 @@
       <aside class="sidebar" aria-label="Conversations">
         <header class="side-header">
           <div class="identity">
-            <div class="avatar avatar-me" id="myAvatar">ME</div>
+            <img
+              class="logo"
+              src="/images/logo.png"
+              id="logo"
+              alt="NodeChat"
+            />
             <div>
-              <div class="brand">NodeChat</div>
+              <img
+                src="/images/text.png"
+                alt="Logo Text"
+                class="brand"
+              />
               <div id="myUsername" class="identity-name">Your name</div>
             </div>
           </div>
@@ -223,10 +232,12 @@
       <section class="chat-panel" aria-label="Conversation">
         <div id="welcome" class="welcome">
           <div class="welcome-inner">
-            <div class="welcome-mark" aria-hidden="true">
-              <span></span><span></span>
-            </div>
-            <p class="eyebrow">NodeChat</p>
+            <img
+              src="/images/logo-text.png"
+              alt="Logo"
+              class="welcome-logo"
+              aria-hidden="true"
+            />
             <h1>Pick a conversation.</h1>
             <p>
               Choose someone from the left, or search by name or username to
@@ -341,7 +352,9 @@
           <div class="profile-label">Member since</div>
           <div class="profile-value" id="profileJoinedValue">—</div>
         </div>
-        <button type="button" class="profile-signout" id="logoutBtn">Sign out</button>
+        <button type="button" class="profile-signout" id="logoutBtn">
+          Sign out
+        </button>
       </div>
     </aside>
 

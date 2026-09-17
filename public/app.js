@@ -1069,7 +1069,7 @@ $("searchInput").addEventListener("keydown", (event) => {
 $("newChatBtn").addEventListener("click", () => openSearchSection());
 $("emptyNewChat").addEventListener("click", () => openSearchSection());
 $("myUsername").addEventListener("click", openMyProfile);
-$("myAvatar").addEventListener("click", openMyProfile);
+$("logo").addEventListener("click", openMyProfile);
 $("closeMyProfile").addEventListener("click", closeProfiles);
 $("closeContactProfile").addEventListener("click", closeProfiles);
 $("profileBackdrop").addEventListener("click", closeProfiles);
@@ -1194,7 +1194,6 @@ async function bootApp(user) {
   $("authScreen").classList.add("hidden");
   app.classList.remove("hidden");
   $("myUsername").textContent = displayName(me);
-  $("myAvatar").textContent = initials(displayName(me));
   try {
     await loadChats();
     connect();
