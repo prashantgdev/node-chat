@@ -529,7 +529,7 @@ async function copyMessage(message) {
 
 function deleteMessage(message) {
   if (!socket?.connected || !message?.id) return;
-  if (!confirm("Delete this message permanently?")) return;
+  // if (!confirm("Delete this message permanently?")) return;
   socket.emit("chat:delete", { messageId: message.id });
 }
 
