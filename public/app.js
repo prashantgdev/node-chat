@@ -561,7 +561,7 @@ function messageStatus(message) {
   const delivered =
     message.delivered ||
     (message.deliveredTo || []).some((name) => name.toLowerCase() === other);
-  return read ? "Read" : delivered ? "Delivered" : "Sent";
+  return read ? "read" : delivered ? "delivered" : "sent";
 }
 
 function createMessageElement(message) {
@@ -576,7 +576,7 @@ function createMessageElement(message) {
     <div class="message-body">${esc(message.text)}</div>
     <div class="message-meta">
       <span>${esc(time(message.createdAt))}${message.editedAt ? " · edited" : ""}</span>
-      ${mine ? `<span class="message-status">${esc(messageStatus(message))}</span>` : ""}
+      ${mine ? `<span class="message-status ${messageStatus(message)}">${messageStatus(message) === "sent" ? "✓" : "✓✓"}</span>` : ""}
     </div>`;
   return item;
 }
@@ -812,29 +812,63 @@ function connect() {
     }
   });
 
+  // socket.on("chat:status", (data) => {
+  //   const item = $("messages").querySelector(
+  //     `[data-message-id="${CSS.escape(data.messageId)}"]`,
+  //   );
+  //   if (item) {
+  //     item.querySelector(".message-status").textContent = data.delivered
+  //       ? "Delivered"
+  //       : "Sent";
+  //   }
+  // });
+
   socket.on("chat:status", (data) => {
     const item = $("messages").querySelector(
       `[data-message-id="${CSS.escape(data.messageId)}"]`,
     );
-    if (item) {
-      item.querySelector(".message-status").textContent = data.delivered
-        ? "Delivered"
-        : "Sent";
+
+    if (!item) return;
+
+    const status = item.querySelector(".message-status");
+
+    if (!status) return;
+
+    status.classList.remove("sent", "delivered", "read");
+
+    if (data.delivered) {
+      status.textContent = "✓✓";
+      status.classList.add("delivered");
+    } else {
+      status.textContent = "✓";
+      status.classList.add("sent");
     }
   });
 
   socket.on("chat:read", (data) => {
     if (data.conversationId !== activeConversationId) return;
+
     document.querySelectorAll(".message.mine .message-status").forEach((el) => {
-      el.textContent = "Read";
+      el.textContent = "✓✓";
+      el.classList.remove("sent", "delivered");
+      el.classList.add("read");
     });
   });
 
   socket.on("chat:message:update", (message) => {
+    const index = activeMessages.findIndex(
+      (item) => String(item.id) === String(message.id),
+    );
+
+    if (index !== -1) {
+      activeMessages[index] = message;
+    }
+
     replaceMessage(message);
     const chat = chats.find(
       (item) => item.conversationId === message.conversationId,
     );
+
     if (
       chat &&
       message.senderUsername.toLowerCase() === me.username.toLowerCase()
