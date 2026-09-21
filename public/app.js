@@ -812,17 +812,6 @@ function connect() {
     }
   });
 
-  // socket.on("chat:status", (data) => {
-  //   const item = $("messages").querySelector(
-  //     `[data-message-id="${CSS.escape(data.messageId)}"]`,
-  //   );
-  //   if (item) {
-  //     item.querySelector(".message-status").textContent = data.delivered
-  //       ? "Delivered"
-  //       : "Sent";
-  //   }
-  // });
-
   socket.on("chat:status", (data) => {
     const item = $("messages").querySelector(
       `[data-message-id="${CSS.escape(data.messageId)}"]`,
@@ -1016,9 +1005,12 @@ function scheduleSearch() {
 function updateComposer() {
   const input = $("messageInput");
   const count = input.value.length;
-  $("messageCount").textContent = `${count} / 2000`;
-
+  const limit = input.maxLength;
   const editing = Boolean(editingMessageId);
+
+  input.classList.toggle("near-limit", count >= limit * 0.9 && count < limit);
+  input.classList.toggle("limit-reached", count >= limit);
+
   $("sendBtn").disabled =
     !count || (!editing && !activeOtherUsername) || !socket?.connected;
   $("sendBtn").querySelector("span:first-child").textContent = editing

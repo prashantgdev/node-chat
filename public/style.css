@@ -854,7 +854,7 @@ kbd {
 .composer input {
   width: 100%;
   height: 45px;
-  padding: 0 65px 0 13px;
+  padding: 0 13px;
   border: 1px solid var(--line-strong);
   outline: 0;
   border-radius: 4px;
@@ -866,16 +866,20 @@ kbd {
   border-color: #8ea398;
   box-shadow: 0 0 0 3px rgba(36, 92, 74, 0.06);
 }
+.composer input.near-limit {
+  border-color: #c58a2a;
+  box-shadow: 0 0 0 3px rgba(197, 138, 42, 0.08);
+}
+.composer input.limit-reached {
+  border-color: #d93025;
+  box-shadow: 0 0 0 3px rgba(217, 48, 37, 0.08);
+}
+.composer input.limit-reached:focus {
+  border-color: #d93025;
+  box-shadow: 0 0 0 3px rgba(217, 48, 37, 0.12);
+}
 .composer input::placeholder {
   color: #aaa69d;
-}
-.char-count {
-  position: absolute;
-  right: 12px;
-  top: 15px;
-  color: #b2aea5;
-  font-size: 9px;
-  pointer-events: none;
 }
 .cancel-edit-btn {
   height: 45px;
@@ -1200,9 +1204,6 @@ kbd {
   .composer {
     position: relative;
     gap: 6px;
-  }
-  .char-count {
-    display: none;
   }
   .composer input {
     padding-right: 13px;
