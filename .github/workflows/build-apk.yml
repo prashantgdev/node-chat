@@ -3,9 +3,12 @@ name: Build NodeChat APK
 on:
   workflow_dispatch:
 
+permissions:
+  contents: write
+
 jobs:
   build:
-    name: Build Android APK
+    name: Build NodeChat APK
     runs-on: ubuntu-latest
 
     steps:
@@ -160,7 +163,6 @@ jobs:
 
           <manifest xmlns:android="http://schemas.android.com/apk/res/android">
 
-              <!-- Internet access -->
               <uses-permission android:name="android.permission.INTERNET" />
 
               <application
@@ -272,14 +274,6 @@ jobs:
               private WebView webView;
               private View progressBar;
 
-              /*
-               * Your production NodeChat website.
-               *
-               * The Android app does NOT need your MongoDB URL,
-               * JWT secret, email password, etc.
-               *
-               * Those remain on Render.
-               */
               private static final String WEBSITE_URL =
                       "https://node-chat-pyfg.onrender.com";
 
@@ -292,33 +286,21 @@ jobs:
 
                   setContentView(R.layout.activity_main);
 
-
-                  // Find views
                   webView = findViewById(R.id.webView);
                   progressBar = findViewById(R.id.progressBar);
 
 
-                  // WebView settings
                   WebSettings settings = webView.getSettings();
 
                   settings.setJavaScriptEnabled(true);
-
                   settings.setDomStorageEnabled(true);
-
                   settings.setDatabaseEnabled(true);
-
                   settings.setAllowFileAccess(true);
-
                   settings.setAllowContentAccess(true);
-
                   settings.setJavaScriptCanOpenWindowsAutomatically(true);
-
                   settings.setSupportMultipleWindows(false);
 
 
-                  /*
-                   * Keep website navigation inside the WebView.
-                   */
                   webView.setWebViewClient(new WebViewClient() {
 
                       @Override
@@ -351,28 +333,14 @@ jobs:
                   });
 
 
-                  /*
-                   * Required for JavaScript features.
-                   */
                   webView.setWebChromeClient(
                           new WebChromeClient()
                   );
 
 
-                  /*
-                   * Open NodeChat.
-                   */
                   webView.loadUrl(WEBSITE_URL);
 
 
-                  /*
-                   * Android back button:
-                   *
-                   * If WebView has browser history,
-                   * go back.
-                   *
-                   * Otherwise close the app.
-                   */
                   getOnBackPressedDispatcher().addCallback(
                           this,
                           new OnBackPressedCallback(true) {
@@ -399,9 +367,7 @@ jobs:
               protected void onDestroy() {
 
                   if (webView != null) {
-
                       webView.destroy();
-
                   }
 
                   super.onDestroy();
@@ -422,7 +388,7 @@ jobs:
 
 
       # --------------------------------------------------
-      # 15. Build Android APK
+      # 15. Build APK
       # --------------------------------------------------
       - name: Build Debug APK
         working-directory: android
@@ -431,18 +397,48 @@ jobs:
 
 
       # --------------------------------------------------
-      # 16. Verify APK exists
+      # 16. Rename APK
       # --------------------------------------------------
-      - name: Verify APK
+      - name: Rename APK
         run: |
-          ls -lh android/app/build/outputs/apk/debug/
+          cp \
+            android/app/build/outputs/apk/debug/app-debug.apk \
+            NodeChat.apk
 
 
       # --------------------------------------------------
-      # 17. Upload APK to GitHub Actions
+      # 17. Get release version
       # --------------------------------------------------
-      - name: Upload APK
-        uses: actions/upload-artifact@v4
+      - name: Generate release version
+        id: version
+        run: |
+          echo "version=v1.0.${GITHUB_RUN_NUMBER}" >> "$GITHUB_OUTPUT"
+
+
+      # --------------------------------------------------
+      # 18. Create GitHub Release
+      # --------------------------------------------------
+      - name: Create GitHub Release
+        uses: softprops/action-gh-release@v2
         with:
-          name: NodeChat-APK
-          path: android/app/build/outputs/apk/debug/app-debug.apk
+          tag_name: ${{ steps.version.outputs.version }}
+          name: NodeChat ${{ steps.version.outputs.version }}
+          body: |
+            ## NodeChat Android App
+
+            Download the Android APK below.
+
+            ### Installation
+
+            1. Download `NodeChat.apk`
+            2. Open the APK on your Android phone
+            3. Allow installation from this source if Android asks
+            4. Install NodeChat
+
+            This release was automatically built using GitHub Actions.
+          files: |
+            NodeChat.apk
+          draft: false
+          prerelease: false
+        env:
+          GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
