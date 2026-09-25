@@ -7,6 +7,7 @@ permissions:
   contents: write
 
 jobs:
+
   build:
     name: Build NodeChat APK
     runs-on: ubuntu-latest
@@ -16,13 +17,15 @@ jobs:
       # --------------------------------------------------
       # 1. Checkout repository
       # --------------------------------------------------
+
       - name: Checkout repository
         uses: actions/checkout@v4
 
 
       # --------------------------------------------------
-      # 2. Setup Java
+      # 2. Java
       # --------------------------------------------------
+
       - name: Set up Java
         uses: actions/setup-java@v4
         with:
@@ -31,8 +34,9 @@ jobs:
 
 
       # --------------------------------------------------
-      # 3. Setup Android SDK
+      # 3. Android SDK
       # --------------------------------------------------
+
       - name: Set up Android SDK
         uses: android-actions/setup-android@v4
         with:
@@ -42,6 +46,7 @@ jobs:
       # --------------------------------------------------
       # 4. Install Android SDK packages
       # --------------------------------------------------
+
       - name: Install Android SDK packages
         run: |
           yes | sdkmanager --licenses || true
@@ -55,330 +60,696 @@ jobs:
       # --------------------------------------------------
       # 5. Create Android project directories
       # --------------------------------------------------
+
       - name: Create Android project
         run: |
           mkdir -p android/app/src/main/java/com/prashantgdev/nodechat
+
           mkdir -p android/app/src/main/res/layout
+
           mkdir -p android/app/src/main/res/values
 
+          mkdir -p android/app/src/main/res/drawable
+
+          mkdir -p android/app/src/main/res/mipmap-mdpi
+
+          mkdir -p android/app/src/main/res/mipmap-hdpi
+
+          mkdir -p android/app/src/main/res/mipmap-xhdpi
+
+          mkdir -p android/app/src/main/res/mipmap-xxhdpi
+
+          mkdir -p android/app/src/main/res/mipmap-xxxhdpi
+
 
       # --------------------------------------------------
-      # 6. Create settings.gradle
+      # 6. COPY YOUR LOGO
+      #
+      # IMPORTANT:
+      # Change logo.png to the exact PNG filename
+      # inside public/images/
+      #
+      # Example:
+      # public/images/nodechat-logo.png
       # --------------------------------------------------
+
+      - name: Copy NodeChat logo
+        run: |
+          LOGO="public/images/logo.png"
+
+          if [ ! -f "$LOGO" ]; then
+            echo "ERROR: Logo not found:"
+            echo "$LOGO"
+            echo ""
+            echo "Available PNG files:"
+            find public/images -maxdepth 1 -type f \
+              \( -iname "*.png" \) \
+              -print
+            exit 1
+          fi
+
+          echo "Using logo:"
+          echo "$LOGO"
+
+          cp "$LOGO" \
+            android/app/src/main/res/drawable/nodechat_logo.png
+
+          cp "$LOGO" \
+            android/app/src/main/res/mipmap-mdpi/ic_launcher.png
+
+          cp "$LOGO" \
+            android/app/src/main/res/mipmap-hdpi/ic_launcher.png
+
+          cp "$LOGO" \
+            android/app/src/main/res/mipmap-xhdpi/ic_launcher.png
+
+          cp "$LOGO" \
+            android/app/src/main/res/mipmap-xxhdpi/ic_launcher.png
+
+          cp "$LOGO" \
+            android/app/src/main/res/mipmap-xxxhdpi/ic_launcher.png
+
+
+      # --------------------------------------------------
+      # 7. settings.gradle
+      # --------------------------------------------------
+
       - name: Create settings.gradle
         run: |
           cat > android/settings.gradle <<'EOF'
+
           pluginManagement {
+
               repositories {
+
                   google()
+
                   mavenCentral()
+
                   gradlePluginPortal()
+
               }
+
           }
+
 
           dependencyResolutionManagement {
-              repositoriesMode.set(RepositoriesMode.FAIL_ON_PROJECT_REPOS)
+
+              repositoriesMode.set(
+                  RepositoriesMode.FAIL_ON_PROJECT_REPOS
+              )
 
               repositories {
+
                   google()
+
                   mavenCentral()
+
               }
+
           }
+
 
           rootProject.name = "NodeChat"
 
           include(":app")
+
           EOF
 
 
       # --------------------------------------------------
-      # 7. Create root build.gradle
+      # 8. Root build.gradle
       # --------------------------------------------------
+
       - name: Create root build.gradle
         run: |
           cat > android/build.gradle <<'EOF'
+
           plugins {
-              id 'com.android.application' version '8.7.3' apply false
+
+              id 'com.android.application'
+                  version '8.7.3'
+                  apply false
+
           }
+
           EOF
 
 
       # --------------------------------------------------
-      # 8. Create gradle.properties
+      # 9. gradle.properties
       # --------------------------------------------------
+
       - name: Create gradle.properties
         run: |
           cat > android/gradle.properties <<'EOF'
+
           android.useAndroidX=true
+
           android.nonTransitiveRClass=true
+
           EOF
 
 
       # --------------------------------------------------
-      # 9. Create app/build.gradle
+      # 10. App build.gradle
       # --------------------------------------------------
+
       - name: Create app build.gradle
         run: |
           cat > android/app/build.gradle <<'EOF'
+
           plugins {
+
               id 'com.android.application'
+
           }
 
+
           android {
+
               namespace 'com.prashantgdev.nodechat'
 
               compileSdk 35
 
+
               defaultConfig {
+
                   applicationId 'com.prashantgdev.nodechat'
 
                   minSdk 23
+
                   targetSdk 35
 
                   versionCode 1
+
                   versionName '1.0'
+
               }
+
 
               buildTypes {
+
                   release {
+
                       minifyEnabled false
+
                   }
+
               }
+
           }
 
+
           dependencies {
+
               implementation 'androidx.appcompat:appcompat:1.7.0'
+
               implementation 'androidx.activity:activity:1.10.1'
+
+              implementation 'androidx.core:core:1.15.0'
+
           }
+
           EOF
 
 
       # --------------------------------------------------
-      # 10. Create AndroidManifest.xml
+      # 11. AndroidManifest.xml
       # --------------------------------------------------
+
       - name: Create AndroidManifest.xml
         run: |
           cat > android/app/src/main/AndroidManifest.xml <<'EOF'
+
           <?xml version="1.0" encoding="utf-8"?>
 
-          <manifest xmlns:android="http://schemas.android.com/apk/res/android">
+          <manifest
+              xmlns:android="http://schemas.android.com/apk/res/android">
 
-              <uses-permission android:name="android.permission.INTERNET" />
+
+              <uses-permission
+                  android:name="android.permission.INTERNET" />
+
 
               <application
+
                   android:allowBackup="true"
+
                   android:label="NodeChat"
+
+                  android:icon="@mipmap/ic_launcher"
+
+                  android:roundIcon="@mipmap/ic_launcher"
+
                   android:supportsRtl="true"
+
                   android:usesCleartextTraffic="false"
+
                   android:theme="@style/AppTheme">
 
+
                   <activity
+
                       android:name=".MainActivity"
+
                       android:exported="true">
+
 
                       <intent-filter>
 
-                          <action android:name="android.intent.action.MAIN" />
+                          <action
+                              android:name="android.intent.action.MAIN" />
 
                           <category
                               android:name="android.intent.category.LAUNCHER" />
 
                       </intent-filter>
 
+
                   </activity>
+
 
               </application>
 
+
           </manifest>
+
           EOF
 
 
       # --------------------------------------------------
-      # 11. Create activity_main.xml
+      # 12. Main activity layout
       # --------------------------------------------------
+
       - name: Create activity_main.xml
         run: |
           cat > android/app/src/main/res/layout/activity_main.xml <<'EOF'
+
           <?xml version="1.0" encoding="utf-8"?>
 
           <FrameLayout
+
               xmlns:android="http://schemas.android.com/apk/res/android"
+
+              android:id="@+id/rootLayout"
+
               android:layout_width="match_parent"
+
               android:layout_height="match_parent">
 
+
               <WebView
+
                   android:id="@+id/webView"
+
                   android:layout_width="match_parent"
+
                   android:layout_height="match_parent" />
 
+
               <ProgressBar
+
                   android:id="@+id/progressBar"
+
                   android:layout_width="wrap_content"
+
                   android:layout_height="wrap_content"
+
                   android:layout_gravity="center" />
 
+
           </FrameLayout>
+
           EOF
 
 
       # --------------------------------------------------
-      # 12. Create styles.xml
+      # 13. App theme
       # --------------------------------------------------
+
       - name: Create styles.xml
         run: |
           cat > android/app/src/main/res/values/styles.xml <<'EOF'
+
           <?xml version="1.0" encoding="utf-8"?>
 
           <resources>
 
+
               <style
+
                   name="AppTheme"
+
                   parent="Theme.AppCompat.Light.NoActionBar">
 
-                  <item name="android:fontFamily">sans</item>
 
-                  <item name="android:windowLightStatusBar">true</item>
+                  <item name="android:fontFamily">
+                      sans
+                  </item>
 
-                  <item name="android:statusBarColor">#FFFFFF</item>
 
-                  <item name="android:navigationBarColor">#FFFFFF</item>
+                  <item name="android:windowLightStatusBar">
+                      true
+                  </item>
+
+
+                  <item name="android:statusBarColor">
+                      #FFFFFF
+                  </item>
+
+
+                  <item name="android:navigationBarColor">
+                      #FFFFFF
+                  </item>
+
+
+                  <item name="android:windowActionModeOverlay">
+                      true
+                  </item>
+
 
               </style>
 
+
           </resources>
+
           EOF
 
 
       # --------------------------------------------------
-      # 13. Create MainActivity.java
+      # 14. MainActivity.java
+      #
+      # Includes:
+      # - WebView
+      # - JavaScript
+      # - Socket.IO support
+      # - Android 15 edge-to-edge handling
+      # - Status bar inset
+      # - Navigation bar inset
+      # - Back button
       # --------------------------------------------------
+
       - name: Create MainActivity.java
         run: |
           cat > android/app/src/main/java/com/prashantgdev/nodechat/MainActivity.java <<'EOF'
+
           package com.prashantgdev.nodechat;
 
+
           import android.annotation.SuppressLint;
+
           import android.os.Bundle;
+
           import android.view.View;
+
           import android.webkit.WebChromeClient;
+
           import android.webkit.WebResourceRequest;
+
           import android.webkit.WebSettings;
+
           import android.webkit.WebView;
+
           import android.webkit.WebViewClient;
 
+
           import androidx.activity.OnBackPressedCallback;
+
           import androidx.appcompat.app.AppCompatActivity;
+
+          import androidx.core.graphics.Insets;
+
+          import androidx.core.view.ViewCompat;
+
+          import androidx.core.view.WindowInsetsCompat;
+
 
           public class MainActivity extends AppCompatActivity {
 
+
               private WebView webView;
+
               private View progressBar;
+
+              private View rootLayout;
+
 
               private static final String WEBSITE_URL =
                       "https://node-chat-pyfg.onrender.com";
 
 
               @SuppressLint("SetJavaScriptEnabled")
+
               @Override
+
               protected void onCreate(Bundle savedInstanceState) {
+
 
                   super.onCreate(savedInstanceState);
 
-                  setContentView(R.layout.activity_main);
 
-                  webView = findViewById(R.id.webView);
-                  progressBar = findViewById(R.id.progressBar);
-
-
-                  WebSettings settings = webView.getSettings();
-
-                  settings.setJavaScriptEnabled(true);
-                  settings.setDomStorageEnabled(true);
-                  settings.setDatabaseEnabled(true);
-                  settings.setAllowFileAccess(true);
-                  settings.setAllowContentAccess(true);
-                  settings.setJavaScriptCanOpenWindowsAutomatically(true);
-                  settings.setSupportMultipleWindows(false);
+                  setContentView(
+                      R.layout.activity_main
+                  );
 
 
-                  webView.setWebViewClient(new WebViewClient() {
+                  rootLayout =
+                      findViewById(
+                          R.id.rootLayout
+                      );
 
-                      @Override
-                      public boolean shouldOverrideUrlLoading(
-                              WebView view,
-                              WebResourceRequest request) {
 
-                          view.loadUrl(
-                                  request.getUrl().toString()
+                  webView =
+                      findViewById(
+                          R.id.webView
+                      );
+
+
+                  progressBar =
+                      findViewById(
+                          R.id.progressBar
+                      );
+
+
+                  /*
+                   * Android 15 / SDK 35 uses
+                   * edge-to-edge.
+                   *
+                   * Apply the status bar and
+                   * navigation bar insets so
+                   * the website does not overlap
+                   * the Android system UI.
+                   */
+
+                  ViewCompat.setOnApplyWindowInsetsListener(
+
+                      rootLayout,
+
+                      (view, windowInsets) -> {
+
+
+                          Insets systemBars =
+                              windowInsets.getInsets(
+                                  WindowInsetsCompat.Type.systemBars()
+                              );
+
+
+                          view.setPadding(
+
+                              0,
+
+                              systemBars.top,
+
+                              0,
+
+                              systemBars.bottom
+
                           );
 
-                          return true;
+
+                          return windowInsets;
+
                       }
 
+                  );
 
-                      @Override
-                      public void onPageFinished(
+
+                  ViewCompat.requestApplyInsets(
+                      rootLayout
+                  );
+
+
+                  WebSettings settings =
+                      webView.getSettings();
+
+
+                  settings.setJavaScriptEnabled(
+                      true
+                  );
+
+
+                  settings.setDomStorageEnabled(
+                      true
+                  );
+
+
+                  settings.setDatabaseEnabled(
+                      true
+                  );
+
+
+                  settings.setAllowFileAccess(
+                      true
+                  );
+
+
+                  settings.setAllowContentAccess(
+                      true
+                  );
+
+
+                  settings.setJavaScriptCanOpenWindowsAutomatically(
+                      true
+                  );
+
+
+                  settings.setSupportMultipleWindows(
+                      false
+                  );
+
+
+                  webView.setWebViewClient(
+                      new WebViewClient() {
+
+
+                          @Override
+
+                          public boolean shouldOverrideUrlLoading(
+
                               WebView view,
-                              String url) {
 
-                          progressBar.setVisibility(
+                              WebResourceRequest request
+
+                          ) {
+
+
+                              view.loadUrl(
+                                  request
+                                      .getUrl()
+                                      .toString()
+                              );
+
+
+                              return true;
+
+                          }
+
+
+                          @Override
+
+                          public void onPageFinished(
+
+                              WebView view,
+
+                              String url
+
+                          ) {
+
+
+                              progressBar.setVisibility(
                                   View.GONE
-                          );
+                              );
 
-                          super.onPageFinished(
+
+                              super.onPageFinished(
                                   view,
                                   url
-                          );
+                              );
+
+                          }
+
+
                       }
-                  });
+                  );
 
 
                   webView.setWebChromeClient(
-                          new WebChromeClient()
+                      new WebChromeClient()
                   );
 
 
-                  webView.loadUrl(WEBSITE_URL);
+                  webView.loadUrl(
+                      WEBSITE_URL
+                  );
 
 
-                  getOnBackPressedDispatcher().addCallback(
+                  getOnBackPressedDispatcher()
+                      .addCallback(
+
                           this,
-                          new OnBackPressedCallback(true) {
+
+                          new OnBackPressedCallback(
+                              true
+                          ) {
+
 
                               @Override
+
                               public void handleOnBackPressed() {
 
-                                  if (webView.canGoBack()) {
+
+                                  if (
+                                      webView.canGoBack()
+                                  ) {
+
 
                                       webView.goBack();
 
+
                                   } else {
+
 
                                       finish();
 
+
                                   }
+
                               }
+
+
                           }
-                  );
+
+                      );
+
               }
 
 
               @Override
+
               protected void onDestroy() {
 
+
                   if (webView != null) {
+
                       webView.destroy();
+
                   }
 
+
                   super.onDestroy();
+
               }
+
           }
+
           EOF
 
 
       # --------------------------------------------------
-      # 14. Download Gradle
+      # 15. Download Gradle
       # --------------------------------------------------
+
       - name: Download Gradle
         run: |
           wget -q \
@@ -388,17 +759,21 @@ jobs:
 
 
       # --------------------------------------------------
-      # 15. Build APK
+      # 16. Build APK
       # --------------------------------------------------
+
       - name: Build Debug APK
         working-directory: android
         run: |
-          ../gradle-8.10.2/bin/gradle assembleDebug --no-daemon
+          ../gradle-8.10.2/bin/gradle \
+            assembleDebug \
+            --no-daemon
 
 
       # --------------------------------------------------
-      # 16. Rename APK
+      # 17. Rename APK
       # --------------------------------------------------
+
       - name: Rename APK
         run: |
           cp \
@@ -407,38 +782,50 @@ jobs:
 
 
       # --------------------------------------------------
-      # 17. Get release version
+      # 18. Generate release version
       # --------------------------------------------------
+
       - name: Generate release version
         id: version
         run: |
-          echo "version=v1.0.${GITHUB_RUN_NUMBER}" >> "$GITHUB_OUTPUT"
+          echo "version=v1.0.${GITHUB_RUN_NUMBER}" \
+            >> "$GITHUB_OUTPUT"
 
 
       # --------------------------------------------------
-      # 18. Create GitHub Release
+      # 19. Create GitHub Release
       # --------------------------------------------------
+
       - name: Create GitHub Release
         uses: softprops/action-gh-release@v2
+
         with:
+
           tag_name: ${{ steps.version.outputs.version }}
+
           name: NodeChat ${{ steps.version.outputs.version }}
+
           body: |
             ## NodeChat Android App
 
-            Download the Android APK below.
+            Download the NodeChat APK below.
 
             ### Installation
 
-            1. Download `NodeChat.apk`
-            2. Open the APK on your Android phone
+            1. Download NodeChat.apk
+            2. Open it on your Android phone
             3. Allow installation from this source if Android asks
             4. Install NodeChat
 
-            This release was automatically built using GitHub Actions.
+            This APK was automatically built using GitHub Actions.
+
           files: |
             NodeChat.apk
+
           draft: false
+
           prerelease: false
+
         env:
+
           GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
