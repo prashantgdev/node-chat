@@ -43,7 +43,9 @@ function createRateLimiter({ windowMs, max, message }) {
     }
     bucket.count += 1;
     if (bucket.count > max) {
-      const retryAfter = Math.ceil((windowMs - (now - bucket.startedAt)) / 1000);
+      const retryAfter = Math.ceil(
+        (windowMs - (now - bucket.startedAt)) / 1000,
+      );
       res.set("Retry-After", String(retryAfter));
       return res.status(429).json({ error: message, retryAfter });
     }
@@ -94,7 +96,10 @@ await Promise.all([
 ]);
 
 // Reactions were removed from the product. Clean up any legacy reaction fields.
-await messages.updateMany({ reactions: { $exists: true } }, { $unset: { reactions: "" } });
+await messages.updateMany(
+  { reactions: { $exists: true } },
+  { $unset: { reactions: "" } },
+);
 
 function makeToken() {
   return crypto.randomBytes(32).toString("hex");
@@ -297,11 +302,9 @@ app.post("/api/auth/register", authRateLimit, async (req, res) => {
     if (name.length < 2 || name.length > 50)
       return res.status(400).json({ error: "Name must be 2-50 characters." });
     if (!/^[A-Za-z0-9_]{3,24}$/.test(username))
-      return res
-        .status(400)
-        .json({
-          error: "Username must be 3-24 letters, numbers or underscores.",
-        });
+      return res.status(400).json({
+        error: "Username must be 3-24 letters, numbers or underscores.",
+      });
     if (!/^\S+@\S+\.\S+$/.test(email) || email.length > 120)
       return res.status(400).json({ error: "Enter a valid email." });
     if (password.length < 8 || password.length > 72)
@@ -320,13 +323,11 @@ app.post("/api/auth/register", authRateLimit, async (req, res) => {
 
     if (exists) {
       if (exists.email === email && exists.emailVerified === false) {
-        return res
-          .status(409)
-          .json({
-            error: "This account is waiting for email verification.",
-            code: "EMAIL_NOT_VERIFIED",
-            email,
-          });
+        return res.status(409).json({
+          error: "This account is waiting for email verification.",
+          code: "EMAIL_NOT_VERIFIED",
+          email,
+        });
       }
       return res
         .status(409)
@@ -482,13 +483,11 @@ app.post("/api/auth/login", authRateLimit, async (req, res) => {
     if (!user || !(await bcrypt.compare(password, user.passwordHash)))
       return res.status(401).json({ error: "Invalid login details." });
     if (user.emailVerified === false)
-      return res
-        .status(403)
-        .json({
-          error: "Please verify your email before signing in.",
-          code: "EMAIL_NOT_VERIFIED",
-          email: user.email,
-        });
+      return res.status(403).json({
+        error: "Please verify your email before signing in.",
+        code: "EMAIL_NOT_VERIFIED",
+        email: user.email,
+      });
     const now = await setLastSeen(user.username);
     user.lastSeenAt = now;
     const session = await createSession(user.username);
@@ -511,21 +510,18 @@ app.post("/api/auth/logout", requireUser, async (req, res) => {
 });
 
 app.get("/api/me", requireUser, async (req, res) =>
-  res.json({ user: publicUser(req.user, req.user.username) })
+  res.json({ user: publicUser(req.user, req.user.username) }),
 );
 
 app.patch("/api/me/email-visibility", requireUser, async (req, res) => {
   const showEmail = req.body.showEmail === true;
 
-  await users.updateOne(
-    { _id: req.user._id },
-    { $set: { showEmail } }
-  );
+  await users.updateOne({ _id: req.user._id }, { $set: { showEmail } });
 
   req.user.showEmail = showEmail;
 
   res.json({
-    user: publicUser(req.user, req.user.username)
+    user: publicUser(req.user, req.user.username),
   });
 });
 
@@ -638,9 +634,15 @@ app.get("/api/chats/:otherUsername/messages", requireUser, async (req, res) => {
   const before = req.query.before ? new Date(req.query.before) : null;
   const filter = {
     conversationId: chat._id,
-    ...(before && !Number.isNaN(before.getTime()) ? { createdAt: { $lt: before } } : {}),
+    ...(before && !Number.isNaN(before.getTime())
+      ? { createdAt: { $lt: before } }
+      : {}),
   };
-  const docs = await messages.find(filter).sort({ createdAt: -1 }).limit(limit + 1).toArray();
+  const docs = await messages
+    .find(filter)
+    .sort({ createdAt: -1 })
+    .limit(limit + 1)
+    .toArray();
   const hasMore = docs.length > limit;
   docs.splice(limit);
   docs.reverse();
@@ -661,13 +663,16 @@ function publicMessage(message) {
     text: message.text,
     createdAt: message.createdAt,
     editedAt: message.editedAt || null,
-    delivered: Array.isArray(message.deliveredTo) && message.deliveredTo.length > 0,
+    delivered:
+      Array.isArray(message.deliveredTo) && message.deliveredTo.length > 0,
     readBy: Array.isArray(message.readBy) ? message.readBy : [],
   };
 }
 
 function userIsMember(chat, username) {
-  return chat.members.some((member) => member.toLowerCase() === username.toLowerCase());
+  return chat.members.some(
+    (member) => member.toLowerCase() === username.toLowerCase(),
+  );
 }
 
 io.use(async (socket, next) => {
@@ -689,7 +694,8 @@ io.on("connection", (socket) => {
 
   async function getChatForOther(otherUsername) {
     const other = await getUserByUsername(otherUsername);
-    if (!other || other.username.toLowerCase() === me.toLowerCase()) return null;
+    if (!other || other.username.toLowerCase() === me.toLowerCase())
+      return null;
     return { other, chat: await getOrCreateChat(me, other.username) };
   }
 
@@ -699,7 +705,11 @@ io.on("connection", (socket) => {
       conversationId: chat._id,
       ...(before ? { createdAt: { $lt: before } } : {}),
     };
-    const docs = await messages.find(filter).sort({ createdAt: -1 }).limit(limit + 1).toArray();
+    const docs = await messages
+      .find(filter)
+      .sort({ createdAt: -1 })
+      .limit(limit + 1)
+      .toArray();
     const hasMore = docs.length > limit;
     docs.splice(limit);
     docs.reverse();
@@ -740,7 +750,9 @@ io.on("connection", (socket) => {
 
   socket.on("chat:older", async ({ conversationId, before }) => {
     try {
-      const chat = await conversations.findOne({ _id: new ObjectId(conversationId) });
+      const chat = await conversations.findOne({
+        _id: new ObjectId(conversationId),
+      });
       if (!chat || !userIsMember(chat, me)) return;
       const date = new Date(before);
       if (Number.isNaN(date.getTime())) return;
@@ -755,7 +767,13 @@ io.on("connection", (socket) => {
     try {
       otherUsername = cleanUsername(otherUsername);
       text = String(text || "").trim();
-      if (!otherUsername || otherUsername.toLowerCase() === me.toLowerCase() || !text || text.length > 2000) return;
+      if (
+        !otherUsername ||
+        otherUsername.toLowerCase() === me.toLowerCase() ||
+        !text ||
+        text.length > 2000
+      )
+        return;
       const result = await getChatForOther(otherUsername);
       if (!result) return socket.emit("chat:error", "User not found.");
       const { other, chat } = result;
@@ -770,7 +788,10 @@ io.on("connection", (socket) => {
       };
       const inserted = await messages.insertOne(message);
       message._id = inserted.insertedId;
-      await conversations.updateOne({ _id: chat._id }, { $set: { updatedAt: message.createdAt } });
+      await conversations.updateOne(
+        { _id: chat._id },
+        { $set: { updatedAt: message.createdAt } },
+      );
       const payload = publicMessage(message);
       io.to(`chat:${chat._id}`).emit("chat:message", payload);
       io.to(`user:${other.username.toLowerCase()}`).emit("chat:updated", {
@@ -810,13 +831,21 @@ io.on("connection", (socket) => {
 
   socket.on("chat:read", async ({ conversationId }) => {
     try {
-      const chat = await conversations.findOne({ _id: new ObjectId(conversationId) });
+      const chat = await conversations.findOne({
+        _id: new ObjectId(conversationId),
+      });
       if (!chat || !userIsMember(chat, me)) return;
       await messages.updateMany(
-        { conversationId: chat._id, senderUsername: { $ne: me }, readBy: { $ne: me } },
+        {
+          conversationId: chat._id,
+          senderUsername: { $ne: me },
+          readBy: { $ne: me },
+        },
         { $addToSet: { readBy: me } },
       );
-      const other = chat.members.find((x) => x.toLowerCase() !== me.toLowerCase());
+      const other = chat.members.find(
+        (x) => x.toLowerCase() !== me.toLowerCase(),
+      );
       io.to(`user:${other.toLowerCase()}`).emit("chat:read", {
         conversationId,
         username: me,
@@ -835,7 +864,10 @@ io.on("connection", (socket) => {
       );
       const message = result?.value || result;
       if (!message) return;
-      io.to(`chat:${message.conversationId}`).emit("chat:message:update", publicMessage(message));
+      io.to(`chat:${message.conversationId}`).emit(
+        "chat:message:update",
+        publicMessage(message),
+      );
     } catch {}
   });
 
@@ -863,7 +895,8 @@ io.on("connection", (socket) => {
 
   socket.on("chat:typing", async ({ otherUsername, isTyping }) => {
     otherUsername = cleanUsername(otherUsername);
-    if (!otherUsername || otherUsername.toLowerCase() === me.toLowerCase()) return;
+    if (!otherUsername || otherUsername.toLowerCase() === me.toLowerCase())
+      return;
     const other = await getUserByUsername(otherUsername);
     if (other)
       io.to(`user:${other.username.toLowerCase()}`).emit("chat:typing", {
@@ -873,10 +906,17 @@ io.on("connection", (socket) => {
   });
 
   socket.on("disconnect", async () => {
-    const stillConnected = await io.in(`user:${me.toLowerCase()}`).fetchSockets().catch(() => []);
+    const stillConnected = await io
+      .in(`user:${me.toLowerCase()}`)
+      .fetchSockets()
+      .catch(() => []);
     if (stillConnected.length === 0) {
       const lastSeenAt = await setLastSeen(me).catch(() => new Date());
-      socket.broadcast.emit("presence:update", { username: me, online: false, lastSeenAt });
+      socket.broadcast.emit("presence:update", {
+        username: me,
+        online: false,
+        lastSeenAt,
+      });
     }
   });
 });
