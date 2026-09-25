@@ -5,33 +5,63 @@ on:
 
 jobs:
   build:
+    name: Build Android APK
     runs-on: ubuntu-latest
 
     steps:
+
+      # --------------------------------------------------
+      # 1. Checkout repository
+      # --------------------------------------------------
       - name: Checkout repository
         uses: actions/checkout@v4
 
+
+      # --------------------------------------------------
+      # 2. Setup Java
+      # --------------------------------------------------
       - name: Set up Java
         uses: actions/setup-java@v4
         with:
           distribution: temurin
           java-version: '17'
 
+
+      # --------------------------------------------------
+      # 3. Setup Android SDK
+      # --------------------------------------------------
       - name: Set up Android SDK
-        uses: android-actions/setup-android@v3
+        uses: android-actions/setup-android@v4
+        with:
+          packages: ''
 
-      - name: Install Android SDK
+
+      # --------------------------------------------------
+      # 4. Install Android SDK packages
+      # --------------------------------------------------
+      - name: Install Android SDK packages
         run: |
-          sdkmanager "platform-tools" \
-                     "platforms;android-35" \
-                     "build-tools;35.0.0"
+          yes | sdkmanager --licenses || true
 
+          sdkmanager \
+            "platform-tools" \
+            "platforms;android-35" \
+            "build-tools;35.0.0"
+
+
+      # --------------------------------------------------
+      # 5. Create Android project directories
+      # --------------------------------------------------
       - name: Create Android project
         run: |
           mkdir -p android/app/src/main/java/com/prashantgdev/nodechat
           mkdir -p android/app/src/main/res/layout
           mkdir -p android/app/src/main/res/values
 
+
+      # --------------------------------------------------
+      # 6. Create settings.gradle
+      # --------------------------------------------------
       - name: Create settings.gradle
         run: |
           cat > android/settings.gradle <<'EOF'
@@ -45,6 +75,7 @@ jobs:
 
           dependencyResolutionManagement {
               repositoriesMode.set(RepositoriesMode.FAIL_ON_PROJECT_REPOS)
+
               repositories {
                   google()
                   mavenCentral()
@@ -52,9 +83,14 @@ jobs:
           }
 
           rootProject.name = "NodeChat"
-          include ':app'
+
+          include(":app")
           EOF
 
+
+      # --------------------------------------------------
+      # 7. Create root build.gradle
+      # --------------------------------------------------
       - name: Create root build.gradle
         run: |
           cat > android/build.gradle <<'EOF'
@@ -63,6 +99,10 @@ jobs:
           }
           EOF
 
+
+      # --------------------------------------------------
+      # 8. Create gradle.properties
+      # --------------------------------------------------
       - name: Create gradle.properties
         run: |
           cat > android/gradle.properties <<'EOF'
@@ -70,6 +110,10 @@ jobs:
           android.nonTransitiveRClass=true
           EOF
 
+
+      # --------------------------------------------------
+      # 9. Create app/build.gradle
+      # --------------------------------------------------
       - name: Create app build.gradle
         run: |
           cat > android/app/build.gradle <<'EOF'
@@ -79,14 +123,23 @@ jobs:
 
           android {
               namespace 'com.prashantgdev.nodechat'
+
               compileSdk 35
 
               defaultConfig {
                   applicationId 'com.prashantgdev.nodechat'
+
                   minSdk 23
                   targetSdk 35
+
                   versionCode 1
                   versionName '1.0'
+              }
+
+              buildTypes {
+                  release {
+                      minifyEnabled false
+                  }
               }
           }
 
@@ -96,6 +149,10 @@ jobs:
           }
           EOF
 
+
+      # --------------------------------------------------
+      # 10. Create AndroidManifest.xml
+      # --------------------------------------------------
       - name: Create AndroidManifest.xml
         run: |
           cat > android/app/src/main/AndroidManifest.xml <<'EOF'
@@ -103,11 +160,13 @@ jobs:
 
           <manifest xmlns:android="http://schemas.android.com/apk/res/android">
 
+              <!-- Internet access -->
               <uses-permission android:name="android.permission.INTERNET" />
 
               <application
                   android:allowBackup="true"
                   android:label="NodeChat"
+                  android:supportsRtl="true"
                   android:usesCleartextTraffic="false"
                   android:theme="@style/AppTheme">
 
@@ -116,8 +175,12 @@ jobs:
                       android:exported="true">
 
                       <intent-filter>
+
                           <action android:name="android.intent.action.MAIN" />
-                          <category android:name="android.intent.category.LAUNCHER" />
+
+                          <category
+                              android:name="android.intent.category.LAUNCHER" />
+
                       </intent-filter>
 
                   </activity>
@@ -127,6 +190,10 @@ jobs:
           </manifest>
           EOF
 
+
+      # --------------------------------------------------
+      # 11. Create activity_main.xml
+      # --------------------------------------------------
       - name: Create activity_main.xml
         run: |
           cat > android/app/src/main/res/layout/activity_main.xml <<'EOF'
@@ -151,6 +218,10 @@ jobs:
           </FrameLayout>
           EOF
 
+
+      # --------------------------------------------------
+      # 12. Create styles.xml
+      # --------------------------------------------------
       - name: Create styles.xml
         run: |
           cat > android/app/src/main/res/values/styles.xml <<'EOF'
@@ -158,17 +229,27 @@ jobs:
 
           <resources>
 
-              <style name="AppTheme"
+              <style
+                  name="AppTheme"
                   parent="Theme.AppCompat.Light.NoActionBar">
 
                   <item name="android:fontFamily">sans</item>
-                  <item name="android:colorAccent">#2196F3</item>
+
+                  <item name="android:windowLightStatusBar">true</item>
+
+                  <item name="android:statusBarColor">#FFFFFF</item>
+
+                  <item name="android:navigationBarColor">#FFFFFF</item>
 
               </style>
 
           </resources>
           EOF
 
+
+      # --------------------------------------------------
+      # 13. Create MainActivity.java
+      # --------------------------------------------------
       - name: Create MainActivity.java
         run: |
           cat > android/app/src/main/java/com/prashantgdev/nodechat/MainActivity.java <<'EOF'
@@ -191,27 +272,53 @@ jobs:
               private WebView webView;
               private View progressBar;
 
+              /*
+               * Your production NodeChat website.
+               *
+               * The Android app does NOT need your MongoDB URL,
+               * JWT secret, email password, etc.
+               *
+               * Those remain on Render.
+               */
               private static final String WEBSITE_URL =
                       "https://node-chat-pyfg.onrender.com";
+
 
               @SuppressLint("SetJavaScriptEnabled")
               @Override
               protected void onCreate(Bundle savedInstanceState) {
+
                   super.onCreate(savedInstanceState);
 
                   setContentView(R.layout.activity_main);
 
+
+                  // Find views
                   webView = findViewById(R.id.webView);
                   progressBar = findViewById(R.id.progressBar);
 
+
+                  // WebView settings
                   WebSettings settings = webView.getSettings();
 
                   settings.setJavaScriptEnabled(true);
+
                   settings.setDomStorageEnabled(true);
+
                   settings.setDatabaseEnabled(true);
+
                   settings.setAllowFileAccess(true);
+
                   settings.setAllowContentAccess(true);
 
+                  settings.setJavaScriptCanOpenWindowsAutomatically(true);
+
+                  settings.setSupportMultipleWindows(false);
+
+
+                  /*
+                   * Keep website navigation inside the WebView.
+                   */
                   webView.setWebViewClient(new WebViewClient() {
 
                       @Override
@@ -219,25 +326,53 @@ jobs:
                               WebView view,
                               WebResourceRequest request) {
 
-                          view.loadUrl(request.getUrl().toString());
+                          view.loadUrl(
+                                  request.getUrl().toString()
+                          );
+
                           return true;
                       }
+
 
                       @Override
                       public void onPageFinished(
                               WebView view,
                               String url) {
 
-                          progressBar.setVisibility(View.GONE);
+                          progressBar.setVisibility(
+                                  View.GONE
+                          );
 
-                          super.onPageFinished(view, url);
+                          super.onPageFinished(
+                                  view,
+                                  url
+                          );
                       }
                   });
 
-                  webView.setWebChromeClient(new WebChromeClient());
 
+                  /*
+                   * Required for JavaScript features.
+                   */
+                  webView.setWebChromeClient(
+                          new WebChromeClient()
+                  );
+
+
+                  /*
+                   * Open NodeChat.
+                   */
                   webView.loadUrl(WEBSITE_URL);
 
+
+                  /*
+                   * Android back button:
+                   *
+                   * If WebView has browser history,
+                   * go back.
+                   *
+                   * Otherwise close the app.
+                   */
                   getOnBackPressedDispatcher().addCallback(
                           this,
                           new OnBackPressedCallback(true) {
@@ -246,20 +381,27 @@ jobs:
                               public void handleOnBackPressed() {
 
                                   if (webView.canGoBack()) {
+
                                       webView.goBack();
+
                                   } else {
+
                                       finish();
+
                                   }
                               }
                           }
                   );
               }
 
+
               @Override
               protected void onDestroy() {
 
                   if (webView != null) {
+
                       webView.destroy();
+
                   }
 
                   super.onDestroy();
@@ -267,16 +409,38 @@ jobs:
           }
           EOF
 
+
+      # --------------------------------------------------
+      # 14. Download Gradle
+      # --------------------------------------------------
       - name: Download Gradle
         run: |
-          wget https://services.gradle.org/distributions/gradle-8.10.2-bin.zip
+          wget -q \
+            https://services.gradle.org/distributions/gradle-8.10.2-bin.zip
+
           unzip -q gradle-8.10.2-bin.zip
 
-      - name: Build APK
+
+      # --------------------------------------------------
+      # 15. Build Android APK
+      # --------------------------------------------------
+      - name: Build Debug APK
         working-directory: android
         run: |
-          ../gradle-8.10.2/bin/gradle assembleDebug
+          ../gradle-8.10.2/bin/gradle assembleDebug --no-daemon
 
+
+      # --------------------------------------------------
+      # 16. Verify APK exists
+      # --------------------------------------------------
+      - name: Verify APK
+        run: |
+          ls -lh android/app/build/outputs/apk/debug/
+
+
+      # --------------------------------------------------
+      # 17. Upload APK to GitHub Actions
+      # --------------------------------------------------
       - name: Upload APK
         uses: actions/upload-artifact@v4
         with:
