@@ -1,149 +1,138 @@
 const {
-    app,
-    BrowserWindow,
-    shell,
-    session,
-    Menu
+  app,
+  BrowserWindow,
+  shell,
+  session,
+  Menu,
+  Notification,
+  ipcMain,
 } = require("electron");
 
 const path = require("path");
 
-const WEBSITE_URL =
-    "https://node-chat-pyfg.onrender.com";
+const WEBSITE_URL = "https://node-chat-pyfg.onrender.com";
 
-const APP_ID =
-    "com.prashantgdev.nodechat";
+const APP_ID = "com.prashantgdev.nodechat";
 
 let mainWindow = null;
 
-function createWindow() {
+function showWindowsNotification(title, body) {
+  if (process.platform !== "win32") {
+    return;
+  }
 
-    mainWindow = new BrowserWindow({
+  if (!Notification.isSupported()) {
+    return;
+  }
 
-        width: 1280,
-        height: 800,
+  const notification = new Notification({
+    title,
+    body,
+    silent: false,
+  });
 
-        minWidth: 900,
-        minHeight: 600,
+  notification.on("click", () => {
+    if (!mainWindow) {
+      return;
+    }
 
-        show: false,
+    if (mainWindow.isMinimized()) {
+      mainWindow.restore();
+    }
 
-        backgroundColor: "#ffffff",
+    mainWindow.show();
+    mainWindow.focus();
+  });
 
-        title: "NodeChat",
-
-        icon: path.join(
-            __dirname,
-            "..",
-            "public",
-            "images",
-            "logo.png"
-        ),
-
-        webPreferences: {
-
-            contextIsolation: true,
-
-            nodeIntegration: false,
-
-            sandbox: true,
-
-            devTools: true
-        }
-    });
-
-
-    /*
-     * Show the window only after
-     * the first page has loaded.
-     */
-
-    mainWindow.once(
-        "ready-to-show",
-        () => {
-
-            mainWindow.show();
-
-        }
-    );
-
-
-    /*
-     * Keep navigation inside NodeChat.
-     *
-     * External websites are opened
-     * using the user's default browser.
-     */
-
-    mainWindow.webContents.setWindowOpenHandler(
-        ({ url }) => {
-
-            if (
-                url.startsWith("https://node-chat-pyfg.onrender.com")
-            ) {
-
-                return {
-                    action: "allow"
-                };
-
-            }
-
-            shell.openExternal(url);
-
-            return {
-                action: "deny"
-            };
-        }
-    );
-
-
-    mainWindow.webContents.on(
-        "will-navigate",
-        (event, url) => {
-
-            if (
-                !url.startsWith(
-                    WEBSITE_URL
-                )
-            ) {
-
-                event.preventDefault();
-
-                shell.openExternal(url);
-            }
-        }
-    );
-
-
-    /*
-     * Load the live NodeChat website.
-     */
-
-    mainWindow.loadURL(
-        WEBSITE_URL
-    );
-
-
-    /*
-     * Open DevTools only during
-     * development if needed.
-     *
-     * Keep this disabled for normal use.
-     */
-
-    // mainWindow.webContents.openDevTools();
-
-
-    mainWindow.on(
-        "closed",
-        () => {
-
-            mainWindow = null;
-
-        }
-    );
+  notification.show();
 }
 
+function createWindow() {
+  mainWindow = new BrowserWindow({
+    width: 1280,
+    height: 800,
+
+    minWidth: 900,
+    minHeight: 600,
+
+    show: false,
+
+    backgroundColor: "#ffffff",
+
+    title: "NodeChat",
+
+    icon: path.join(__dirname, "..", "public", "images", "logo.png"),
+
+    webPreferences: {
+      contextIsolation: true,
+
+      nodeIntegration: false,
+
+      sandbox: true,
+
+      devTools: true,
+
+      preload: path.join(__dirname, "preload.cjs"),
+    },
+  });
+
+  /*
+   * Show the window only after
+   * the first page has loaded.
+   */
+
+  mainWindow.once("ready-to-show", () => {
+    mainWindow.show();
+  });
+
+  /*
+   * Keep navigation inside NodeChat.
+   *
+   * External websites are opened
+   * using the user's default browser.
+   */
+
+  mainWindow.webContents.setWindowOpenHandler(({ url }) => {
+    if (url.startsWith("https://node-chat-pyfg.onrender.com")) {
+      return {
+        action: "allow",
+      };
+    }
+
+    shell.openExternal(url);
+
+    return {
+      action: "deny",
+    };
+  });
+
+  mainWindow.webContents.on("will-navigate", (event, url) => {
+    if (!url.startsWith(WEBSITE_URL)) {
+      event.preventDefault();
+
+      shell.openExternal(url);
+    }
+  });
+
+  /*
+   * Load the live NodeChat website.
+   */
+
+  mainWindow.loadURL(WEBSITE_URL);
+
+  /*
+   * Open DevTools only during
+   * development if needed.
+   *
+   * Keep this disabled for normal use.
+   */
+
+  // mainWindow.webContents.openDevTools();
+
+  mainWindow.on("closed", () => {
+    mainWindow = null;
+  });
+}
 
 /*
  * Set the Windows App User Model ID.
@@ -153,90 +142,68 @@ function createWindow() {
  */
 
 if (process.platform === "win32") {
-
-    app.setAppUserModelId(
-        APP_ID
-    );
+  app.setAppUserModelId(APP_ID);
 }
 
+ipcMain.on("nodechat:notification", (event, data) => {
+  if (process.platform !== "win32") {
+    return;
+  }
+
+  const title = String(data?.title || "NodeChat");
+
+  const message = String(data?.message || "");
+
+  showWindowsNotification(title, message);
+});
 
 /*
  * Electron startup.
  */
 
-app.whenReady()
-    .then(() => {
+app.whenReady().then(() => {
+  Menu.setApplicationMenu(null);
 
-        Menu.setApplicationMenu(null);
+  createWindow();
 
-        createWindow();
+  /*
+   * Keep sessions/storage available.
+   */
 
-        /*
-         * Keep sessions/storage available.
-         */
+  session.defaultSession.setPermissionRequestHandler(
+    (webContents, permission, callback) => {
+      /*
+       * Allow common website permissions.
+       *
+       * We can make this more restrictive
+       * later if your website needs it.
+       */
 
-        session.defaultSession
-            .setPermissionRequestHandler(
-                (webContents, permission, callback) => {
+      const allowedPermissions = [
+        "notifications",
+        "media",
+        "clipboard-read",
+        "clipboard-sanitized-write",
+      ];
 
-                    /*
-                     * Allow common website permissions.
-                     *
-                     * We can make this more restrictive
-                     * later if your website needs it.
-                     */
+      callback(allowedPermissions.includes(permission));
+    },
+  );
 
-                    const allowedPermissions = [
-                        "notifications",
-                        "media",
-                        "clipboard-read",
-                        "clipboard-sanitized-write"
-                    ];
-
-                    callback(
-                        allowedPermissions.includes(
-                            permission
-                        )
-                    );
-                }
-            );
-
-
-        app.on(
-            "activate",
-            () => {
-
-                if (
-                    BrowserWindow.getAllWindows()
-                        .length === 0
-                ) {
-
-                    createWindow();
-
-                }
-
-            }
-        );
-
-    });
-
+  app.on("activate", () => {
+    if (BrowserWindow.getAllWindows().length === 0) {
+      createWindow();
+    }
+  });
+});
 
 /*
  * Windows/Linux:
  * quit when all windows are closed.
  */
 
-app.on(
-    "window-all-closed",
-    () => {
-
-        if (
-            process.platform !== "darwin"
-        ) {
-
-            app.quit();
-
-        }
-
-    }
-);
+app.on("window-all-closed", () => {
+  if (process.platform !== "darwin") {
+    app.quit();
+  }
+});

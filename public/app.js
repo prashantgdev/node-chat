@@ -48,6 +48,51 @@ function displayName(user) {
   return user?.name || user?.displayName || user?.username || "User";
 }
 
+function isElectronApp() {
+  return Boolean(window.process && window.process.type);
+}
+
+function showNodeChatNotification(title, message) {
+  /*
+   * Android APK
+   */
+  if (window.Android && typeof window.Android.notify === "function") {
+    window.Android.notify(title, message);
+
+    return;
+  }
+
+  /*
+   * Windows Electron EXE
+   */
+  if (
+    window.nodeChatDesktop &&
+    typeof window.nodeChatDesktop.notify === "function"
+  ) {
+    window.nodeChatDesktop.notify(title, message);
+
+    return;
+  }
+
+  /*
+   * Normal browser
+   */
+  if ("Notification" in window && Notification.permission === "granted") {
+    new Notification(title, {
+      body: message,
+      icon: "/images/logo.png",
+    });
+  }
+}
+
+async function requestNodeChatNotifications() {
+  if ("Notification" in window && Notification.permission === "default") {
+    try {
+      await Notification.requestPermission();
+    } catch {}
+  }
+}
+
 function handle(user) {
   return user?.username ? `@${user.username}` : "";
 }
@@ -772,13 +817,42 @@ function connect() {
         0,
       );
     }
-    if (!fromMe && !fromActive) {
+    // if (!fromMe && !fromActive) {
+    //   const sender = chats.find(
+    //     (item) =>
+    //       item.user.username.toLowerCase() ===
+    //       message.senderUsername.toLowerCase(),
+    //   )?.user || { username: message.senderUsername, name: message.senderName };
+    //   toast(`New message from ${displayName(sender)}`);
+    // }
+    if (!fromMe) {
       const sender = chats.find(
         (item) =>
           item.user.username.toLowerCase() ===
           message.senderUsername.toLowerCase(),
-      )?.user || { username: message.senderUsername, name: message.senderName };
-      toast(`New message from ${displayName(sender)}`);
+      )?.user || {
+        username: message.senderUsername,
+        name: message.senderName,
+      };
+
+      const senderName = displayName(sender);
+
+      /*
+       * Show the existing in-app toast only when
+       * the conversation isn't currently open.
+       */
+      if (!fromActive) {
+        toast(`New message from ${senderName}`);
+      }
+
+      /*
+       * Native/system notification.
+       *
+       * This is intentionally triggered for every
+       * incoming message, including the currently
+       * open conversation.
+       */
+      showNodeChatNotification(`New message from ${senderName}`, message.text);
     }
     if (!fromMe && fromActive && activeConversationId) {
       socket.emit("chat:read", { conversationId: activeConversationId });
@@ -1215,16 +1289,39 @@ document.addEventListener("click", (event) => {
     $("searchResult").classList.add("hidden");
 });
 
+// async function bootApp(user) {
+//   me = user;
+//   $("authScreen").classList.add("hidden");
+//   app.classList.remove("hidden");
+//   $("myUsername").textContent = displayName(me);
+//   try {
+//     await loadChats();
+//     connect();
+//   } catch {
+//     toast("Could not load conversations. Retrying…");
+//     connect();
+//   }
+// }
 async function bootApp(user) {
   me = user;
+
   $("authScreen").classList.add("hidden");
   app.classList.remove("hidden");
+
   $("myUsername").textContent = displayName(me);
+
+  /*
+   * Ask for browser/Electron notification
+   * permission after successful login.
+   */
+  await requestNodeChatNotifications();
+
   try {
     await loadChats();
     connect();
   } catch {
     toast("Could not load conversations. Retrying…");
+
     connect();
   }
 }
