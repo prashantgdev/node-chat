@@ -7,7 +7,7 @@
   "scripts": {
     "start": "node server.js",
     "desktop": "electron .",
-    "desktop:build": "electron-builder --win",
+    "desktop:build": "electron-builder --win --publish never",
     "dev": "node --watch server.js"
   },
   "dependencies": {
