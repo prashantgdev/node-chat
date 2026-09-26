@@ -1,0 +1,132 @@
+name: Build NodeChat Windows
+
+on:
+  workflow_dispatch:
+
+permissions:
+  contents: write
+
+jobs:
+
+  build:
+    name: Build NodeChat Windows
+    runs-on: windows-latest
+
+    steps:
+
+      # -----------------------------------------------
+      # 1. Checkout repository
+      # -----------------------------------------------
+
+      - name: Checkout repository
+        uses: actions/checkout@v4
+
+
+      # -----------------------------------------------
+      # 2. Setup Node.js
+      # -----------------------------------------------
+
+      - name: Set up Node.js
+        uses: actions/setup-node@v4
+        with:
+          node-version: '22'
+          cache: npm
+
+
+      # -----------------------------------------------
+      # 3. Install dependencies
+      # -----------------------------------------------
+
+      - name: Install dependencies
+        run: npm ci
+
+
+      # -----------------------------------------------
+      # 4. Check Electron files
+      # -----------------------------------------------
+
+      - name: Check Electron files
+        shell: powershell
+        run: |
+
+          if (!(Test-Path "electron/main.cjs")) {
+              Write-Error "electron/main.cjs was not found."
+              exit 1
+          }
+
+          if (!(Test-Path "public/images/logo.png")) {
+              Write-Error "public/images/logo.png was not found."
+              exit 1
+          }
+
+          Write-Host "Electron files found."
+          Write-Host "Logo found."
+
+
+      # -----------------------------------------------
+      # 5. Build Windows installer
+      # -----------------------------------------------
+
+      - name: Build Windows installer
+        run: npm run desktop:build
+
+
+      # -----------------------------------------------
+      # 6. Show generated files
+      # -----------------------------------------------
+
+      - name: Show build output
+        shell: powershell
+        run: |
+
+          Write-Host "Generated files:"
+
+          Get-ChildItem `
+            -Path dist `
+            -Recurse
+
+
+      # -----------------------------------------------
+      # 7. Generate release version
+      # -----------------------------------------------
+
+      - name: Generate release version
+        id: version
+        shell: powershell
+        run: |
+
+          "version=v1.0.${{ github.run_number }}" |
+            Out-File `
+            -FilePath $env:GITHUB_OUTPUT `
+            -Append
+
+
+      # -----------------------------------------------
+      # 8. Create GitHub Release
+      # -----------------------------------------------
+
+      - name: Create GitHub Release
+        uses: softprops/action-gh-release@v2
+
+        with:
+
+          tag_name: ${{ steps.version.outputs.version }}
+
+          name: NodeChat ${{ steps.version.outputs.version }}
+
+          body: |
+            ## NodeChat Windows App
+
+            Download NodeChat-Setup.exe below.
+
+            Built automatically using GitHub Actions.
+
+          files: |
+            dist/NodeChat-Setup-*.exe
+
+          draft: false
+
+          prerelease: false
+
+        env:
+          GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}

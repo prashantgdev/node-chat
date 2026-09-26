@@ -3,8 +3,11 @@
   "version": "2.0.0",
   "private": true,
   "type": "module",
+  "main": "electron/main.cjs",
   "scripts": {
     "start": "node server.js",
+    "desktop": "electron .",
+    "desktop:build": "electron-builder --win",
     "dev": "node --watch server.js"
   },
   "dependencies": {
@@ -14,5 +17,52 @@
     "mongodb": "^6.20.0",
     "socket.io": "^4.8.1",
     "nodemailer": "^7.0.6"
+  },
+  "devDependencies": {
+    "electron": "^39.8.10",
+    "electron-builder": "^26.15.3"
+  },
+  "build": {
+    "appId": "com.prashantgdev.nodechat",
+    "productName": "NodeChat",
+
+    "directories": {
+        "output": "dist"
+    },
+
+    "files": [
+        "electron/**/*",
+        "public/images/logo.png",
+        "package.json"
+    ],
+
+    "win": {
+        "target": [
+            {
+                "target": "nsis",
+                "arch": [
+                    "x64"
+                ]
+            }
+        ],
+
+        "icon": "public/images/logo.png"
+    },
+
+    "nsis": {
+        "oneClick": false,
+
+        "allowToChangeInstallationDirectory": true,
+
+        "createDesktopShortcut": true,
+
+        "createStartMenuShortcut": true,
+
+        "shortcutName": "NodeChat",
+
+        "deleteAppDataOnUninstall": false
+    },
+
+    "artifactName": "NodeChat-Setup-${version}.${ext}"
   }
 }
