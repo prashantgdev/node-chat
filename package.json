@@ -25,44 +25,37 @@
   "build": {
     "appId": "com.prashantgdev.nodechat",
     "productName": "NodeChat",
-
     "directories": {
-        "output": "dist"
+      "output": "dist"
     },
-
     "files": [
-        "electron/**/*",
-        "public/images/logo.png",
-        "package.json"
+      "electron/**/*",
+      "public/images/logo.png",
+      "package.json"
     ],
-
     "win": {
-        "target": [
-            {
-                "target": "nsis",
-                "arch": [
-                    "x64"
-                ]
-            }
-        ],
-
-        "icon": "public/images/logo.png"
+      "target": [
+        {
+          "target": "nsis",
+          "arch": [
+            "x64"
+          ]
+        }
+      ],
+      "icon": "public/images/logo.png"
     },
-
     "nsis": {
-        "oneClick": false,
-
-        "allowToChangeInstallationDirectory": true,
-
-        "createDesktopShortcut": true,
-
-        "createStartMenuShortcut": true,
-
-        "shortcutName": "NodeChat",
-
-        "deleteAppDataOnUninstall": false
+      "oneClick": false,
+      "allowToChangeInstallationDirectory": true,
+      "createDesktopShortcut": true,
+      "createStartMenuShortcut": true,
+      "shortcutName": "NodeChat",
+      "deleteAppDataOnUninstall": false
     },
-
     "artifactName": "NodeChat-Setup-${version}.${ext}"
+  },
+  "allowScripts": {
+    "electron@39.8.10": true,
+    "electron-winstaller@5.4.0": true
   }
 }
