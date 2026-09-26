@@ -2,7 +2,8 @@ const {
     app,
     BrowserWindow,
     shell,
-    session
+    session,
+    Menu
 } = require("electron");
 
 const path = require("path");
@@ -165,6 +166,8 @@ if (process.platform === "win32") {
 
 app.whenReady()
     .then(() => {
+
+        Menu.setApplicationMenu(null);
 
         createWindow();
 
