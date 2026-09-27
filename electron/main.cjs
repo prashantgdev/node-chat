@@ -187,7 +187,6 @@ app.whenReady()
                      */
 
                     const allowedPermissions = [
-                        "notifications",
                         "media",
                         "clipboard-read",
                         "clipboard-sanitized-write"

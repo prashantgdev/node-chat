@@ -1,11 +1,4 @@
 name: Build NodeChat APK
-
-#on:
-#  push:
-#    branches:
-#      - main
-
-#  workflow_dispatch:
   
 on:
   workflow_dispatch:

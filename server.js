@@ -255,15 +255,83 @@ async function sendVerificationOtp(email) {
     to: email,
     subject: "Verify your NodeChat email",
     text: `Your NodeChat verification code is ${otp}. It expires in 10 minutes.`,
-    html: `
-      <div style="font-family:Arial,sans-serif;line-height:1.6;color:#24231f;max-width:520px;margin:auto">
-        <h2 style="margin-bottom:8px">Verify your email</h2>
-        <p>Use this code to finish creating your NodeChat account:</p>
-        <div style="font-size:32px;font-weight:700;letter-spacing:8px;margin:24px 0">${otp}</div>
-        <p>This code expires in 10 minutes and can only be used once.</p>
-        <p>If you did not create a NodeChat account, you can ignore this email.</p>
-      </div>
-    `,
+    html: `<div
+  style="
+    max-width: 600px;
+    margin: 0 auto;
+    padding: 45px 35px;
+    font-family: Arial, Helvetica, sans-serif;
+    color: #171717;
+    background-color: #ffffff;
+  "
+>
+  <div
+    style="
+      text-align: center;
+      padding-bottom: 55px;
+      font-size: 33px;
+      font-weight: 700;
+      color: #2563eb;
+    "
+  >
+    NodeChat
+  </div>
+
+  <h1 style="margin: 0 0 55px 0; font-size: 30px; font-weight: 600">Hello,</h1>
+
+  <p style="margin: 0; line-height: 1.65; color: #202020">
+    Here is the verification code you will need to verify your email address and
+    create your NodeChat account.
+  </p>
+
+  <div style="text-align: center; padding-top: 60px">
+    <p style="margin: 0 0 18px 0; font-size: 18px; color: #222222">
+      Your verification code:
+    </p>
+
+    <div
+      style="
+        font-size: 44px;
+        font-weight: 700;
+        letter-spacing: 10px;
+        color: #111111;
+      "
+      onclick="navigator.clipboard.writeText('OTP')"
+    >
+      ${otp}
+    </div>
+  </div>
+
+  <div
+    style="
+      margin-top: 65px;
+      padding: 35px 30px;
+      background-color: #eef5ff;
+      border-radius: 18px;
+    "
+  >
+    <p style="margin: 0; line-height: 1.6; color: #222222">
+      <strong>Note:</strong> This code will expire in 10 minutes.
+      <br />
+      * Click on the otp text to copy it.
+    </p>
+  </div>
+
+  <p style="margin: 65px 0 0 0; color: #333333">
+    If you didn't make this request, please disregard this email.
+  </p>
+
+  <p
+    style="
+      margin: 55px 0 0 0;
+      font-size: 20px;
+      font-weight: 600;
+      color: #777777;
+    "
+  >
+    The NodeChat Team
+  </p>
+</div>`,
   });
 }
 
