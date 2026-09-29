@@ -401,6 +401,66 @@ function closeProfiles() {
   setProfilePanel($("contactProfilePanel"), false);
 }
 
+function resetActiveChatView() {
+  activeOtherUsername = null;
+  activeConversationId = null;
+  activeMessages = [];
+  hasMoreMessages = false;
+  editingMessageId = null;
+
+  $("messageInput").value = "";
+  $("messages").innerHTML = "";
+  $("chatView").classList.add("hidden");
+  $("welcome").classList.remove("hidden");
+
+  app.classList.remove("chat-open");
+
+  updateComposer();
+  renderChats();
+}
+
+function clearChat() {
+  if (!socket?.connected || !activeConversationId) {
+    toast("No active conversation.");
+    return;
+  }
+
+  if (
+    !confirm(
+      "Clear all messages in this conversation?\n\nThe conversation will remain in your chat list.",
+    )
+  ) {
+    return;
+  }
+
+  closeProfiles();
+
+  socket.emit("chat:clear", {
+    conversationId: activeConversationId,
+  });
+}
+
+function deleteConversation() {
+  if (!socket?.connected || !activeConversationId) {
+    toast("No active conversation.");
+    return;
+  }
+
+  if (
+    !confirm(
+      "Delete this entire conversation?\n\nAll messages will be permanently deleted for both users.",
+    )
+  ) {
+    return;
+  }
+
+  closeProfiles();
+
+  socket.emit("chat:conversation:delete", {
+    conversationId: activeConversationId,
+  });
+}
+
 function renderChats() {
   const list = $("chatList");
   list.innerHTML = "";
@@ -892,6 +952,51 @@ function connect() {
     updateEmptyMessagesState();
   });
 
+  socket.on("chat:cleared", (data) => {
+    const chat = chats.find(
+      (item) => item.conversationId === data.conversationId,
+    );
+
+    if (chat) {
+      chat.lastMessage = "";
+      chat.lastMessageAt = data.updatedAt || new Date().toISOString();
+      chat.unreadCount = 0;
+    }
+
+    if (activeConversationId === data.conversationId) {
+      activeMessages = [];
+      hasMoreMessages = false;
+
+      $("messages").innerHTML = `
+      <div class="messages-empty">
+        <strong>No messages yet</strong>
+        <span>Say hello and start the conversation.</span>
+      </div>
+    `;
+    }
+
+    renderChats();
+
+    if (data.initiatedBy === me.username) {
+      toast("Chat cleared.");
+    }
+  });
+
+  socket.on("chat:conversation:deleted", (data) => {
+    chats = chats.filter((item) => item.conversationId !== data.conversationId);
+
+    if (activeConversationId === data.conversationId) {
+      closeProfiles();
+      resetActiveChatView();
+    } else {
+      renderChats();
+    }
+
+    if (data.initiatedBy === me.username) {
+      toast("Conversation deleted.");
+    }
+  });
+
   socket.on("presence:update", (data) => {
     const chat = chats.find(
       (item) =>
@@ -1101,6 +1206,8 @@ $("closeContactProfile").addEventListener("click", closeProfiles);
 $("profileBackdrop").addEventListener("click", closeProfiles);
 $("headerAvatar").addEventListener("click", openContactProfile);
 $("headerName").addEventListener("click", openContactProfile);
+$("clearChatBtn").addEventListener("click", clearChat);
+$("deleteConversationBtn").addEventListener("click", deleteConversation);
 document.addEventListener("keydown", (event) => {
   if (event.key === "Escape") closeProfiles();
 });

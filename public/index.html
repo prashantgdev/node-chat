@@ -338,13 +338,22 @@
             <span>Show my email to others</span>
           </label>
         </div>
-        <div class="profile-section profile-section-last">
+        <div class="profile-section">
           <div class="profile-label">Member since</div>
           <div class="profile-value" id="profileJoinedValue">—</div>
         </div>
-        <button type="button" class="profile-signout" id="logoutBtn">
-          Sign out
-        </button>
+        <div
+          class="profile-section profile-action-section profile-section-last"
+        >
+          <button
+            type="button"
+            class="profile-action-row profile-action-danger"
+            id="logoutBtn"
+          >
+            <span class="profile-label">Sign out</span>
+            <span class="profile-value"> Sign out of your account </span>
+          </button>
+        </div>
       </div>
     </aside>
 
@@ -387,9 +396,32 @@
             Private conversation
           </div>
         </div>
-        <div class="profile-section profile-section-last">
+        <div class="profile-section">
           <div class="profile-label">Member since</div>
           <div class="profile-value" id="contactProfileJoinedValue">—</div>
+        </div>
+        <div class="profile-section profile-action-section">
+          <button type="button" class="profile-action-row" id="clearChatBtn">
+            <span class="profile-label">Clear chat</span>
+            <span class="profile-value"
+              >Remove all messages from this conversation</span
+            >
+          </button>
+        </div>
+
+        <div
+          class="profile-section profile-action-section profile-section-last"
+        >
+          <button
+            type="button"
+            class="profile-action-row profile-action-danger"
+            id="deleteConversationBtn"
+          >
+            <span class="profile-label">Delete conversation</span>
+            <span class="profile-value">
+              Permanently remove this conversation
+            </span>
+          </button>
         </div>
       </div>
     </aside>

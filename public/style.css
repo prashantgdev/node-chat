@@ -1091,23 +1091,53 @@ kbd {
   font-size: 14px;
   line-height: 1.4;
 }
-.profile-signout {
-  width: calc(100% - 48px);
-  margin: 24px;
-  margin-top: 0;
-  padding: 12px 0;
-  border: 0;
-  border-radius: 10px;
-  background: transparent;
-  color: #d93025;
-  font: inherit;
-  font-weight: 600;
-  cursor: pointer;
-  text-align: center;
+
+.profile-action-section {
+  padding: 18px 24px;
+  transition: background 0.15s ease;
 }
 
-.profile-signout:hover {
-  background: rgba(217, 48, 37, 0.08);
+.profile-action-row {
+  display: block;
+  width: 100%;
+  padding: 0;
+  border: 0;
+  background: transparent;
+  font: inherit;
+  display: grid;
+  text-align: left;
+  cursor: pointer;
+}
+
+.profile-action-row .profile-label {
+  margin-bottom: 7px;
+}
+
+.profile-action-row .profile-value {
+  color: var(--muted);
+  transition: color 0.15s ease;
+}
+
+.profile-action-section:hover {
+  background: rgba(36, 92, 74, 0.035);
+}
+
+.profile-action-row:hover .profile-value {
+  color: var(--ink);
+}
+
+.profile-action-row:focus-visible {
+  outline: 2px solid var(--accent);
+  outline-offset: 4px;
+  border-radius: 4px;
+}
+
+.profile-action-danger .profile-label {
+  color: #d93025;
+}
+
+.profile-action-danger:hover .profile-value {
+  color: #d93025;
 }
 @media (max-width: 820px) {
   .auth-screen {

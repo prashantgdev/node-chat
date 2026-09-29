@@ -961,6 +961,72 @@ io.on("connection", (socket) => {
     } catch {}
   });
 
+  socket.on("chat:clear", async ({ conversationId }) => {
+    try {
+      if (!conversationId) return;
+
+      const chat = await conversations.findOne({
+        _id: new ObjectId(conversationId),
+      });
+
+      if (!chat || !userIsMember(chat, me)) return;
+
+      await messages.deleteMany({
+        conversationId: chat._id,
+      });
+
+      const updatedAt = new Date();
+
+      await conversations.updateOne(
+        { _id: chat._id },
+        {
+          $set: {
+            updatedAt,
+          },
+        },
+      );
+
+      io.to(`chat:${chat._id}`).emit("chat:cleared", {
+        conversationId: String(chat._id),
+        updatedAt,
+        initiatedBy: me,
+      });
+    } catch (err) {
+      console.error("Could not clear chat:", err);
+      socket.emit("chat:error", "Could not clear the conversation.");
+    }
+  });
+
+  socket.on("chat:conversation:delete", async ({ conversationId }) => {
+    try {
+      if (!conversationId) return;
+
+      const chat = await conversations.findOne({
+        _id: new ObjectId(conversationId),
+      });
+
+      if (!chat || !userIsMember(chat, me)) return;
+
+      await messages.deleteMany({
+        conversationId: chat._id,
+      });
+
+      const deleted = await conversations.deleteOne({
+        _id: chat._id,
+      });
+
+      if (!deleted.deletedCount) return;
+
+      io.to(`chat:${chat._id}`).emit("chat:conversation:deleted", {
+        conversationId: String(chat._id),
+        initiatedBy: me,
+      });
+    } catch (err) {
+      console.error("Could not delete conversation:", err);
+      socket.emit("chat:error", "Could not delete the conversation.");
+    }
+  });
+
   socket.on("chat:typing", async ({ otherUsername, isTyping }) => {
     otherUsername = cleanUsername(otherUsername);
     if (!otherUsername || otherUsername.toLowerCase() === me.toLowerCase())
